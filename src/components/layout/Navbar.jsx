@@ -165,70 +165,195 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0F0F0F] border-t border-[#333] px-4 py-4 space-y-1">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              onClick={() => setMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-3 text-sm font-medium tracking-widest uppercase rounded transition-colors ${
-                  isActive
-                    ? "text-[#AAFF00] bg-[#1A1A1A]"
-                    : "text-[#888] hover:text-[#F0F0F0] hover:bg-[#1A1A1A]"
-                }`
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+        <div
+          style={{
+            background: "rgba(10,10,10,0.98)",
+            backdropFilter: "blur(20px)",
+            borderTop: "1px solid #222",
+            padding: "8px 0 24px 0",
+          }}
+        >
+          {/* Nav Links */}
+          <div style={{ padding: "8px 16px" }}>
+            {navLinks.map((link, i) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) => (isActive ? "block" : "block")}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "14px 12px",
+                  marginBottom: "4px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  letterSpacing: "0.15em",
+                  textDecoration: "none",
+                  background: isActive ? "rgba(170,255,0,0.1)" : "transparent",
+                  color: isActive ? "#AAFF00" : "#888",
+                  borderLeft: isActive
+                    ? "3px solid #AAFF00"
+                    : "3px solid transparent",
+                })}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span>{link.label}</span>
+                    {isActive && (
+                      <span style={{ color: "#AAFF00", fontSize: "10px" }}>
+                        ●
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
 
-          <div className="border-t border-[#333] pt-3 mt-3">
+          {/* Divider */}
+          <div
+            style={{ height: "1px", background: "#1A1A1A", margin: "8px 16px" }}
+          />
+
+          {/* User Section */}
+          <div style={{ padding: "12px 16px" }}>
             {isLoggedIn ? (
               <>
-                <div className="px-3 py-2 mb-2">
-                  <p className="text-sm font-medium text-[#F0F0F0]">
-                    {user?.name}
-                  </p>
-                  <p className="text-xs text-[#888]">{user?.phone}</p>
+                {/* User Info */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "12px",
+                    background: "#1A1A1A",
+                    borderRadius: "10px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      background: "#AAFF00",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: "800",
+                      color: "#0A0A0A",
+                      fontSize: "16px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        color: "#F0F0F0",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {user?.name}
+                    </p>
+                    <p style={{ color: "#555", fontSize: "12px" }}>
+                      {user?.phone}
+                    </p>
+                  </div>
                 </div>
+
                 <Link
                   to="/dashboard"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 text-sm text-[#888] hover:text-[#F0F0F0] hover:bg-[#1A1A1A] rounded transition-colors"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    color: "#888",
+                    textDecoration: "none",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#1A1A1A")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
                 >
-                  <LayoutDashboard size={15} />
-                  Dashboard
+                  <LayoutDashboard size={16} /> Dashboard
                 </Link>
+
                 {isAdmin && (
                   <Link
                     to="/admin"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-3 text-sm text-[#888] hover:text-[#AAFF00] hover:bg-[#1A1A1A] rounded transition-colors"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "12px",
+                      borderRadius: "8px",
+                      color: "#AAFF00",
+                      textDecoration: "none",
+                      fontSize: "13px",
+                      fontWeight: "500",
+                    }}
                   >
-                    <Shield size={15} />
-                    Admin Panel
+                    <Shield size={16} /> Admin Panel
                   </Link>
                 )}
+
                 <button
                   onClick={() => {
                     handleLogout();
                     setMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-3 text-sm text-[#888] hover:text-red-400 hover:bg-[#1A1A1A] rounded transition-colors"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    color: "#FF4444",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    width: "100%",
+                  }}
                 >
-                  <LogOut size={15} />
-                  Logout
+                  <LogOut size={16} /> Logout
                 </button>
               </>
             ) : (
               <Link
                 to="/login"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 mx-3 py-3 border border-[#AAFF00] text-[#AAFF00] text-sm font-medium rounded hover:bg-[#AAFF00] hover:text-[#0A0A0A] transition-all"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "14px",
+                  background: "#AAFF00",
+                  color: "#0A0A0A",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  borderRadius: "10px",
+                  textDecoration: "none",
+                  letterSpacing: "0.05em",
+                }}
               >
-                <User size={15} />
-                Login
+                <User size={16} /> LOGIN
               </Link>
             )}
           </div>
