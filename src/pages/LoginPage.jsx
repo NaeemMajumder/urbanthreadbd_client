@@ -21,27 +21,31 @@ const LoginPage = () => {
 
   const handleSubmit = async () => {
     if (!form.phone.trim()) return toast.error("Phone number দাও");
-    if (!form.password.trim()) return toast.error("Password দাও");
 
+    // Phone validation add করো
+    const phoneRegex = /^(\+880|880|0)1[3-9]\d{8}$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      return toast.error("Valid Bangladeshi phone number দাও (01XXXXXXXXX)");
+    }
+
+    if (!form.password.trim()) return toast.error("Password দাও");
+    if (form.password.length < 6)
+      return toast.error("Password কমপক্ষে ৬ characters হতে হবে");
+
+    // বাকি সব same
     setLoading(true);
     try {
-      // Backend ready হলে এই comment সরাও:
-      // const res = await api.post('/auth/login', form)
-      // login(res.data.data.user, res.data.data.token)
-
-      // Mock login — এখনকার জন্য
       const mockUser = {
         _id: "1",
         name: "Demo User",
         phone: form.phone,
-        role: "admin", // বা "user" — তোমার প্রয়োজন অনুযায়ী
+        role: "admin",
       };
-      const mockToken = "mock-token-123";
-      login(mockUser, mockToken);
+      login(mockUser, "mock-token-123");
       toast.success("Login successful!");
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      toast.error("Login failed");
     } finally {
       setLoading(false);
     }
@@ -135,7 +139,12 @@ const LoginPage = () => {
           <img
             src={logoDark}
             alt="UrbanThread BD"
-            style={{ height: "52px", width: "auto", objectFit: "contain",display: "block" }}
+            style={{
+              height: "52px",
+              width: "auto",
+              objectFit: "contain",
+              display: "block",
+            }}
           />
 
           {/* Middle — Text */}
@@ -325,7 +334,7 @@ const LoginPage = () => {
 
             {/* Register Link */}
             <p style={{ textAlign: "center", color: "#555", fontSize: "14px" }}>
-              Account নেই?{" "} 
+              Account নেই?{" "}
               <Link
                 to="/register"
                 style={{

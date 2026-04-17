@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from 'react-dom'
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -16,6 +17,7 @@ import {
   Search,
   Eye,
   AlertTriangle,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import toast from "react-hot-toast";
@@ -109,6 +111,25 @@ const initialOrders = [
         color: "black",
         quantity: 1,
         price: 650,
+      },
+    ],
+  },
+  {
+    _id: "ORD-005",
+    user: "Rahim Ahmed",
+    phone: "01711111111",
+    total: 950,
+    status: "pending",
+    date: "2025-04-18",
+    payment: "cod",
+    address: "House 12, Road 5, Dhanmondi, Dhaka",
+    items: [
+      {
+        name: "Oversized Urban Tee",
+        size: "L",
+        color: "white",
+        quantity: 1,
+        price: 950,
       },
     ],
   },
@@ -231,6 +252,45 @@ const statusConfig = {
     bg: "rgba(170,255,0,0.1)",
   },
 };
+
+const initialCategories = [
+  {
+    _id: "1",
+    name: "T-Shirts",
+    slug: "tshirt",
+    image: "",
+    productCount: 45,
+    parentCategory: null,
+    isActive: true,
+  },
+  {
+    _id: "2",
+    name: "Hoodies",
+    slug: "hoodie",
+    image: "",
+    productCount: 28,
+    parentCategory: null,
+    isActive: true,
+  },
+  {
+    _id: "3",
+    name: "Joggers",
+    slug: "jogger",
+    image: "",
+    productCount: 32,
+    parentCategory: null,
+    isActive: true,
+  },
+  {
+    _id: "4",
+    name: "Caps",
+    slug: "cap",
+    image: "",
+    productCount: 19,
+    parentCategory: null,
+    isActive: true,
+  },
+];
 
 const categories = ["tshirt", "hoodie", "jogger", "cap"];
 const orderStatuses = ["pending", "processing", "shipped", "delivered"];
@@ -619,148 +679,325 @@ const OrderDetailModal = ({ order, onClose }) => {
 };
 
 // ── User Detail Modal ─────────────────────────────────────────
-const UserDetailModal = ({ user, onClose }) => (
-  <>
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.85)",
-        zIndex: 200,
-        backdropFilter: "blur(4px)",
-      }}
-    />
-    <div
-      style={{
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        background: "#111",
-        border: "1px solid #333",
-        borderRadius: "12px",
-        padding: "32px",
-        width: "90%",
-        maxWidth: "420px",
-        zIndex: 201,
-        animation: "modalIn 0.25s ease",
-      }}
-    >
+const UserDetailModal = ({ user, onClose }) => {
+  const [ordersOpen, setOrdersOpen] = useState(false);
+
+  // এই user এর orders filter করো
+  const userOrders = initialOrders.filter((o) => o.user === user.name);
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.85)",
+          zIndex: 200,
+          backdropFilter: "blur(4px)",
+        }}
+      />
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#111",
+          border: "1px solid #333",
+          borderRadius: "12px",
+          padding: "32px",
+          width: "90%",
+          maxWidth: "460px",
+          zIndex: 201,
+          animation: "modalIn 0.25s ease",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
-        <h3
-          style={{
-            fontFamily: "'Bebas Neue', cursive",
-            fontSize: "1.5rem",
-            color: "#F0F0F0",
-          }}
-        >
-          USER DETAILS
-        </h3>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#555",
-            cursor: "pointer",
-          }}
-        >
-          <X size={20} />
-        </button>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "16px",
-          marginBottom: "24px",
-          padding: "16px",
-          background: "#0F0F0F",
-          borderRadius: "10px",
-        }}
-      >
+        {/* Header */}
         <div
           style={{
-            width: "56px",
-            height: "56px",
-            borderRadius: "50%",
-            background: "#AAFF00",
             display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
-            justifyContent: "center",
-            fontSize: "22px",
-            fontWeight: "800",
-            color: "#0A0A0A",
-            flexShrink: 0,
+            marginBottom: "24px",
           }}
         >
-          {user.name[0]}
-        </div>
-        <div>
-          <p
+          <h3
             style={{
+              fontFamily: "'Bebas Neue', cursive",
+              fontSize: "1.5rem",
               color: "#F0F0F0",
-              fontSize: "16px",
-              fontWeight: "700",
-              marginBottom: "6px",
             }}
           >
-            {user.name}
-          </p>
-          <span
+            USER DETAILS
+          </h3>
+          <button
+            onClick={onClose}
             style={{
-              padding: "3px 10px",
-              borderRadius: "20px",
-              fontSize: "10px",
-              fontWeight: "700",
-              background:
-                user.role === "admin"
-                  ? "rgba(170,255,0,0.1)"
-                  : "rgba(136,136,136,0.1)",
-              color: user.role === "admin" ? "#AAFF00" : "#888",
+              background: "none",
+              border: "none",
+              color: "#555",
+              cursor: "pointer",
             }}
           >
-            {user.role.toUpperCase()}
-          </span>
+            <X size={20} />
+          </button>
         </div>
-      </div>
-      <div style={{ display: "grid", gap: "10px" }}>
-        {[
-          ["Phone", user.phone],
-          ["Email", user.email || "Not provided"],
-          ["Total Orders", user.orders],
-          ["Joined", user.joined],
-        ].map(([label, value]) => (
+
+        {/* Avatar + Name */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            marginBottom: "20px",
+            padding: "16px",
+            background: "#0F0F0F",
+            borderRadius: "10px",
+          }}
+        >
           <div
-            key={label}
             style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              background: "#AAFF00",
               display: "flex",
-              justifyContent: "space-between",
-              padding: "10px 14px",
-              background: "#0F0F0F",
-              borderRadius: "6px",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "22px",
+              fontWeight: "800",
+              color: "#0A0A0A",
+              flexShrink: 0,
             }}
           >
-            <span style={{ color: "#555", fontSize: "12px" }}>{label}</span>
-            <span
-              style={{ color: "#F0F0F0", fontSize: "13px", fontWeight: "600" }}
+            {user.name[0]}
+          </div>
+          <div>
+            <p
+              style={{
+                color: "#F0F0F0",
+                fontSize: "16px",
+                fontWeight: "700",
+                marginBottom: "6px",
+              }}
             >
-              {value}
+              {user.name}
+            </p>
+            <span
+              style={{
+                padding: "3px 10px",
+                borderRadius: "20px",
+                fontSize: "10px",
+                fontWeight: "700",
+                background:
+                  user.role === "admin"
+                    ? "rgba(170,255,0,0.1)"
+                    : "rgba(136,136,136,0.1)",
+                color: user.role === "admin" ? "#AAFF00" : "#888",
+              }}
+            >
+              {user.role.toUpperCase()}
             </span>
           </div>
-        ))}
+        </div>
+
+        {/* Info Grid */}
+        <div style={{ display: "grid", gap: "8px", marginBottom: "20px" }}>
+          {[
+            ["Phone", user.phone],
+            ["Email", user.email || "Not provided"],
+            ["Joined", user.joined],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "10px 14px",
+                background: "#0F0F0F",
+                borderRadius: "6px",
+              }}
+            >
+              <span style={{ color: "#555", fontSize: "12px" }}>{label}</span>
+              <span
+                style={{
+                  color: "#F0F0F0",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                }}
+              >
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Orders Dropdown */}
+        <div>
+          <button
+            onClick={() => setOrdersOpen(!ordersOpen)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "12px 16px",
+              background: "#0F0F0F",
+              border: `1px solid ${ordersOpen ? "#AAFF00" : "#222"}`,
+              borderRadius: ordersOpen ? "8px 8px 0 0" : "8px",
+              color: "#F0F0F0",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <ShoppingBag size={16} color="#AAFF00" />
+              <span style={{ fontSize: "13px", fontWeight: "700" }}>
+                Orders ({userOrders.length})
+              </span>
+            </div>
+            <ChevronDown
+              size={16}
+              color="#555"
+              style={{
+                transform: ordersOpen ? "rotate(180deg)" : "rotate(0)",
+                transition: "transform 0.2s",
+              }}
+            />
+          </button>
+
+          {/* Orders List */}
+          {ordersOpen && (
+            <div
+              style={{
+                border: "1px solid #AAFF00",
+                borderTop: "none",
+                borderRadius: "0 0 8px 8px",
+                overflow: "hidden",
+              }}
+            >
+              {userOrders.length === 0 ? (
+                <div
+                  style={{
+                    padding: "20px",
+                    textAlign: "center",
+                    color: "#555",
+                    fontSize: "13px",
+                  }}
+                >
+                  কোনো order নেই
+                </div>
+              ) : (
+                userOrders.map((order, i) => {
+                  const status = statusConfig[order.status];
+                  return (
+                    <div
+                      key={order._id}
+                      style={{
+                        padding: "14px 16px",
+                        background: i % 2 === 0 ? "#0F0F0F" : "#111",
+                        borderBottom:
+                          i < userOrders.length - 1
+                            ? "1px solid #1A1A1A"
+                            : "none",
+                      }}
+                    >
+                      {/* Order ID + Status */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#F0F0F0",
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          #{order._id}
+                        </span>
+                        <span
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: "20px",
+                            background: status.bg,
+                            color: status.color,
+                            fontSize: "10px",
+                            fontWeight: "700",
+                          }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+
+                      {/* Date + Total */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <span style={{ color: "#555", fontSize: "11px" }}>
+                          {order.date}
+                        </span>
+                        <span
+                          style={{
+                            color: "#AAFF00",
+                            fontSize: "13px",
+                            fontWeight: "800",
+                          }}
+                        >
+                          ৳{order.total.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Items */}
+                      <div
+                        style={{
+                          borderTop: "1px solid #1A1A1A",
+                          paddingTop: "8px",
+                        }}
+                      >
+                        {order.items.map((item, j) => (
+                          <div
+                            key={j}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              marginBottom:
+                                j < order.items.length - 1 ? "4px" : "0",
+                            }}
+                          >
+                            <span style={{ color: "#666", fontSize: "11px" }}>
+                              {item.name} · {item.size} · ×{item.quantity}
+                            </span>
+                            <span style={{ color: "#555", fontSize: "11px" }}>
+                              ৳{(item.price * item.quantity).toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // ── Stats Tab ─────────────────────────────────────────────────
 const StatsTab = ({ setActiveTab }) => {
@@ -1449,7 +1686,7 @@ const ProductsTab = () => {
       </div>
 
       <div
-      className="users-wrapper"
+        className="users-wrapper"
         style={{
           background: "#111",
           border: "1px solid #1A1A1A",
@@ -1895,6 +2132,635 @@ const OrdersTab = () => {
   );
 };
 
+const CategoriesTab = () => {
+  const [categories, setCategories] = useState(initialCategories);
+  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editCategory, setEditCategory] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [form, setForm] = useState({
+    name: "",
+    slug: "",
+    image: "",
+    parentCategory: null,
+    isActive: true,
+  });
+  const [errors, setErrors] = useState({});
+
+  const filtered = categories.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const generateSlug = (name) =>
+    name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+  const openAdd = () => {
+    setEditCategory(null);
+    setForm({
+      name: "",
+      slug: "",
+      image: "",
+      parentCategory: null,
+      isActive: true,
+    });
+    setErrors({});
+    setShowForm(true);
+  };
+
+  const openEdit = (cat) => {
+    setEditCategory(cat);
+    setForm({
+      name: cat.name,
+      slug: cat.slug,
+      image: cat.image || "",
+      parentCategory: cat.parentCategory,
+      isActive: cat.isActive,
+    });
+    setErrors({});
+    setShowForm(true);
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Category name required";
+    if (!form.slug.trim()) e.slug = "Slug required";
+    if (form.slug && !/^[a-z0-9-]+$/.test(form.slug))
+      e.slug = "Slug: lowercase letters, numbers, hyphens only";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = () => {
+    if (!validate()) return;
+    if (editCategory) {
+      setCategories((prev) =>
+        prev.map((c) => (c._id === editCategory._id ? { ...c, ...form } : c)),
+      );
+      toast.success("Category updated!");
+    } else {
+      setCategories((prev) => [
+        ...prev,
+        {
+          _id: Date.now().toString(),
+          ...form,
+          productCount: 0,
+        },
+      ]);
+      toast.success("Category added!");
+    }
+    setShowForm(false);
+  };
+
+  const IS = (err) => ({
+    width: "100%",
+    padding: "10px 14px",
+    background: "#0F0F0F",
+    border: `1px solid ${err ? "#FF4444" : "#222"}`,
+    borderRadius: "6px",
+    color: "#F0F0F0",
+    fontSize: "13px",
+    outline: "none",
+    boxSizing: "border-box",
+  });
+
+  const LS = {
+    display: "block",
+    color: "#888",
+    fontSize: "11px",
+    fontWeight: "700",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    marginBottom: "6px",
+  };
+
+  return (
+    <div>
+      {/* Delete Confirm */}
+      {deleteConfirm && (
+        <ConfirmModal
+          title="DELETE CATEGORY"
+          message="এই category টা permanently delete হয়ে যাবে।"
+          onConfirm={() => {
+            setCategories((prev) =>
+              prev.filter((c) => c._id !== deleteConfirm),
+            );
+            setDeleteConfirm(null);
+            toast.success("Category deleted!");
+          }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
+      {/* Form Modal */}
+      {showForm &&
+        createPortal(
+          <>
+            <div
+              onClick={() => setShowForm(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.85)",
+                zIndex: 1000,
+                backdropFilter: "blur(4px)",
+              }}
+            />
+            <div
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "#111",
+                border: "1px solid #333",
+                borderRadius: "12px",
+                padding: "32px",
+                width: "90%",
+                maxWidth: "480px",
+                zIndex: 1001,
+                maxHeight: "90vh",
+                overflowY: "auto",
+                animation: "modalIn 0.25s ease",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "24px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Bebas Neue', cursive",
+                    fontSize: "1.5rem",
+                    color: "#F0F0F0",
+                  }}
+                >
+                  {editCategory ? "EDIT CATEGORY" : "ADD CATEGORY"}
+                </h3>
+                <button
+                  onClick={() => setShowForm(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#555",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gap: "14px" }}>
+                {/* Name */}
+                <div>
+                  <label style={LS}>Category Name *</label>
+                  <input
+                    type="text"
+                    placeholder="T-Shirts"
+                    value={form.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setForm((p) => ({
+                        ...p,
+                        name,
+                        slug: editCategory ? p.slug : generateSlug(name),
+                      }));
+                    }}
+                    style={IS(errors.name)}
+                  />
+                  {errors.name && (
+                    <p
+                      style={{
+                        color: "#FF4444",
+                        fontSize: "11px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {errors.name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Slug */}
+                <div>
+                  <label style={LS}>Slug *</label>
+                  <input
+                    type="text"
+                    placeholder="t-shirts"
+                    value={form.slug}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, slug: e.target.value }))
+                    }
+                    style={IS(errors.slug)}
+                  />
+                  {errors.slug && (
+                    <p
+                      style={{
+                        color: "#FF4444",
+                        fontSize: "11px",
+                        marginTop: "4px",
+                      }}
+                    >
+                      {errors.slug}
+                    </p>
+                  )}
+                  <p
+                    style={{
+                      color: "#555",
+                      fontSize: "11px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    Auto-generated from name। Manually edit করতে পারো।
+                  </p>
+                </div>
+
+                {/* Image URL */}
+                <div>
+                  <label style={LS}>Image URL (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="https://example.com/image.jpg"
+                    value={form.image}
+                    onChange={(e) =>
+                      setForm((p) => ({ ...p, image: e.target.value }))
+                    }
+                    style={IS(false)}
+                  />
+                </div>
+
+                {/* Parent Category */}
+                <div>
+                  <label style={LS}>Parent Category (Optional)</label>
+                  <select
+                    value={form.parentCategory || ""}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        parentCategory: e.target.value || null,
+                      }))
+                    }
+                    style={{ ...IS(false), cursor: "pointer" }}
+                  >
+                    <option value="" style={{ background: "#111" }}>
+                      None (Top-level)
+                    </option>
+                    {categories
+                      .filter(
+                        (c) => !editCategory || c._id !== editCategory._id,
+                      )
+                      .map((c) => (
+                        <option
+                          key={c._id}
+                          value={c._id}
+                          style={{ background: "#111" }}
+                        >
+                          {c.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Active Toggle */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#0F0F0F",
+                    borderRadius: "6px",
+                    border: "1px solid #222",
+                  }}
+                >
+                  <span style={{ color: "#888", fontSize: "13px" }}>
+                    Active (visible on site)
+                  </span>
+                  <button
+                    onClick={() =>
+                      setForm((p) => ({ ...p, isActive: !p.isActive }))
+                    }
+                    style={{
+                      width: "44px",
+                      height: "24px",
+                      borderRadius: "12px",
+                      background: form.isActive ? "#AAFF00" : "#333",
+                      border: "none",
+                      cursor: "pointer",
+                      position: "relative",
+                      transition: "background 0.2s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "3px",
+                        left: form.isActive ? "23px" : "3px",
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "50%",
+                        background: form.isActive ? "#0A0A0A" : "#888",
+                        transition: "left 0.2s ease",
+                      }}
+                    />
+                  </button>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleSave}
+                  style={{
+                    width: "100%",
+                    padding: "13px",
+                    background: "#AAFF00",
+                    color: "#0A0A0A",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "800",
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <Check size={16} />{" "}
+                  {editCategory ? "Save Changes" : "Add Category"}
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body,
+        )}
+
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: "24px",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "#AAFF00",
+              fontWeight: "700",
+              letterSpacing: "0.3em",
+              textTransform: "uppercase",
+            }}
+          >
+            — Categories
+          </span>
+          <h2
+            style={{
+              fontFamily: "'Bebas Neue', cursive",
+              fontSize: "2rem",
+              color: "#F0F0F0",
+              lineHeight: 1,
+              marginTop: "6px",
+            }}
+          >
+            CATEGORIES ({categories.length})
+          </h2>
+        </div>
+        <button
+          onClick={openAdd}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 20px",
+            background: "#AAFF00",
+            color: "#0A0A0A",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "800",
+            fontSize: "13px",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#88CC00")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#AAFF00")}
+        >
+          <Plus size={16} /> Add Category
+        </button>
+      </div>
+
+      {/* Search */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          background: "#111",
+          border: "1px solid #222",
+          borderRadius: "6px",
+          padding: "0 16px",
+          marginBottom: "20px",
+        }}
+      >
+        <Search size={16} color="#555" />
+        <input
+          type="text"
+          placeholder="Search categories..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: "#F0F0F0",
+            fontSize: "14px",
+            padding: "12px 0",
+            width: "100%",
+          }}
+        />
+      </div>
+
+      {/* Category List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {filtered.map((cat, i) => (
+          <div
+            key={cat._id}
+            style={{
+              background: "#111",
+              border: "1px solid #1A1A1A",
+              borderRadius: "10px",
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "12px",
+              transition: "border-color 0.2s ease",
+              animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#333")}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.borderColor = "#1A1A1A")
+            }
+          >
+            {/* Left */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              {/* Image or Emoji */}
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "8px",
+                  background: "#1A1A1A",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  overflow: "hidden",
+                }}
+              >
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: "1.5rem" }}>
+                    {cat.slug === "tshirt"
+                      ? "👕"
+                      : cat.slug === "hoodie"
+                        ? "🧥"
+                        : cat.slug === "jogger"
+                          ? "👖"
+                          : "🧢"}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <p
+                  style={{
+                    color: "#F0F0F0",
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {cat.name}
+                </p>
+                <div
+                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                >
+                  <span
+                    style={{
+                      color: "#555",
+                      fontSize: "11px",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    /{cat.slug}
+                  </span>
+                  <span style={{ color: "#444", fontSize: "11px" }}>
+                    {cat.productCount} products
+                  </span>
+                  {cat.parentCategory && (
+                    <span style={{ color: "#555", fontSize: "11px" }}>
+                      Sub of:{" "}
+                      {categories.find((c) => c._id === cat.parentCategory)
+                        ?.name || "—"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* Status */}
+              <span
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: "20px",
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  background: cat.isActive
+                    ? "rgba(170,255,0,0.1)"
+                    : "rgba(255,68,68,0.1)",
+                  color: cat.isActive ? "#AAFF00" : "#FF4444",
+                }}
+              >
+                {cat.isActive ? "ACTIVE" : "INACTIVE"}
+              </span>
+
+              {/* Edit */}
+              <button
+                onClick={() => openEdit(cat)}
+                style={{
+                  background: "none",
+                  border: "1px solid #333",
+                  color: "#888",
+                  borderRadius: "4px",
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#AAFF00";
+                  e.currentTarget.style.color = "#AAFF00";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#333";
+                  e.currentTarget.style.color = "#888";
+                }}
+              >
+                <Edit2 size={13} />
+              </button>
+
+              {/* Delete */}
+              <button
+                onClick={() => setDeleteConfirm(cat._id)}
+                style={{
+                  background: "none",
+                  border: "1px solid #333",
+                  color: "#888",
+                  borderRadius: "4px",
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#FF4444";
+                  e.currentTarget.style.color = "#FF4444";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#333";
+                  e.currentTarget.style.color = "#888";
+                }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── Users Tab ─────────────────────────────────────────────────
 const UsersTab = () => {
   const [search, setSearch] = useState("");
@@ -1976,7 +2842,7 @@ const UsersTab = () => {
           overflowX: "auto",
         }}
       >
-        <div className="users-table" style={{ minWidth: '650px' }}>
+        <div className="users-table" style={{ minWidth: "650px" }}>
           <div
             style={{
               display: "grid",
@@ -2048,7 +2914,7 @@ const UsersTab = () => {
                     color: "#F0F0F0",
                     fontSize: "13px",
                     fontWeight: "600",
-                    whiteSpace: 'nowrap',
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {user.name}
@@ -2102,6 +2968,7 @@ const UsersTab = () => {
 const adminMenu = [
   { id: "stats", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
   { id: "products", icon: <Package size={18} />, label: "Products" },
+  { id: 'categories', icon: <Tag size={18} />, label: 'Categories' },
   { id: "orders", icon: <ShoppingBag size={18} />, label: "Orders" },
   { id: "users", icon: <Users size={18} />, label: "Users" },
 ];
@@ -2339,6 +3206,7 @@ const AdminPage = () => {
                 <StatsTab setActiveTab={setActiveTab} />
               )}
               {activeTab === "products" && <ProductsTab />}
+              {activeTab === 'categories' && <CategoriesTab />}
               {activeTab === "orders" && <OrdersTab />}
               {activeTab === "users" && <UsersTab />}
             </div>

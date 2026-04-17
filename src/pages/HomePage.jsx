@@ -139,10 +139,9 @@ const HeroSection = () => {
           inset: 0,
           backgroundImage: `url(${banner.image})`,
           backgroundSize: "cover",
-          backgroundPosition: "center top",
+          backgroundPosition: "center 20px",
           transform: loaded ? "scale(1)" : "scale(1.05)",
-          transition: "transform 1.2s ease, background-image 0.5s ease",
-          
+          transition: "transform 1.2s ease, background-image 1s ease",
         }}
       />
 

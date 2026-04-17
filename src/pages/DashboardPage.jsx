@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   User,
   Package,
@@ -342,22 +342,76 @@ const OrdersTab = () => {
                               : "none",
                         }}
                       >
-                        <div>
-                          <p
+                        {/* Left — Image + Info */}
+                        <Link
+                          to={`/products/${j + 1}`}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            textDecoration: "none",
+                            flex: 1,
+                          }}
+                        >
+                          <div
                             style={{
-                              color: "#F0F0F0",
-                              fontSize: "13px",
-                              fontWeight: "600",
-                              marginBottom: "4px",
+                              width: "52px",
+                              height: "52px",
+                              flexShrink: 0,
+                              background: "#1A1A1A",
+                              borderRadius: "8px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "1.5rem",
+                              opacity: 0.6,
+                              transition: "opacity 0.2s ease",
                             }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.opacity = "1")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.opacity = "0.6")
+                            }
                           >
-                            {item.name}
-                          </p>
-                          <p style={{ color: "#555", fontSize: "11px" }}>
-                            {item.size} · {item.color} · ×{item.quantity}
-                          </p>
-                        </div>
-                        <span style={{ color: "#888", fontSize: "13px" }}>
+                            {item.name?.toLowerCase().includes("hoodie")
+                              ? "🧥"
+                              : item.name?.toLowerCase().includes("jogger") ||
+                                  item.name?.toLowerCase().includes("pant")
+                                ? "👖"
+                                : item.name?.toLowerCase().includes("cap") ||
+                                    item.name
+                                      ?.toLowerCase()
+                                      .includes("snapback")
+                                  ? "🧢"
+                                  : "👕"}
+                          </div>
+                          <div>
+                            <p
+                              style={{
+                                color: "#F0F0F0",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                marginBottom: "4px",
+                              }}
+                            >
+                              {item.name}
+                            </p>
+                            <p style={{ color: "#555", fontSize: "11px" }}>
+                              {item.size} · {item.color} · ×{item.quantity}
+                            </p>
+                          </div>
+                        </Link>
+
+                        {/* Right — Price */}
+                        <span
+                          style={{
+                            color: "#888",
+                            fontSize: "13px",
+                            flexShrink: 0,
+                            marginLeft: "12px",
+                          }}
+                        >
                           ৳{(item.price * item.quantity).toLocaleString()}
                         </span>
                       </div>
@@ -436,7 +490,7 @@ const OrdersTab = () => {
 };
 
 // ── Profile Tab ──────────────────────────────────────────────
-const ProfileTab = ({ user }) => {
+const ProfileTab = ({ user, onUpdate }) => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -445,6 +499,25 @@ const ProfileTab = ({ user }) => {
   });
 
   const handleSave = () => {
+    // Name validation
+    if (!form.name.trim()) return toast.error("Name দাও");
+    if (form.name.trim().length < 2)
+      return toast.error("Name কমপক্ষে ২ characters");
+
+    // Phone validation
+    const phoneRegex = /^(\+880|880|0)1[3-9]\d{8}$/;
+    if (!phoneRegex.test(form.phone.trim())) {
+      return toast.error("Valid phone number দাও (01XXXXXXXXX)");
+    }
+
+    // Email validation (optional কিন্তু দিলে valid হতে হবে)
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      return toast.error("Valid email দাও");
+    }
+
+    setEditing(false);
+
+    onUpdate({ ...user, name: form.name.trim(), phone: form.phone.trim() });
     toast.success("Profile updated!");
     setEditing(false);
   };
@@ -872,9 +945,10 @@ const PasswordTab = () => {
 
 // ── Main Dashboard ───────────────────────────────────────────
 const DashboardPage = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user: authUser, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("orders");
+  const [localUser, setLocalUser] = useState(authUser);
 
   const handleLogout = () => {
     logout();
@@ -983,7 +1057,7 @@ const DashboardPage = () => {
                       flexShrink: 0,
                     }}
                   >
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                    {localUser?.name?.charAt(0).toUpperCase() || "U"}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <p
@@ -996,7 +1070,7 @@ const DashboardPage = () => {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {user?.name || "User"}
+                      {localUser?.name || "User"}
                     </p>
                     <p
                       style={{
@@ -1007,7 +1081,7 @@ const DashboardPage = () => {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {user?.phone || ""}
+                      {localUser?.phone || ""}
                     </p>
                   </div>
                 </div>
@@ -1132,7 +1206,12 @@ const DashboardPage = () => {
               style={{ flex: 1, minWidth: 0, animation: "fadeUp 0.6s ease" }}
             >
               {activeTab === "orders" && <OrdersTab />}
-              {activeTab === "profile" && <ProfileTab user={user} />}
+              {activeTab === "profile" && (
+                <ProfileTab
+                  user={localUser}
+                  onUpdate={(updated) => setLocalUser(updated)}
+                />
+              )}
               {activeTab === "password" && <PasswordTab />}
             </div>
           </div>
