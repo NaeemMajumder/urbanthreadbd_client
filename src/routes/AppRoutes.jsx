@@ -11,6 +11,7 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import CategoriesPage from "../pages/CategoriesPage";
 import DashboardPage from "../pages/DashboardPage";
+import AdminPage from "../pages/admin/AdminPage";
 
 const AppRoutes = () => {
   return (
@@ -28,6 +29,14 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <DashboardPage />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
           }
         />
         {/* বাকি routes পরে */}

@@ -34,7 +34,7 @@ const LoginPage = () => {
         _id: "1",
         name: "Demo User",
         phone: form.phone,
-        role: "user",
+        role: "admin", // বা "user" — তোমার প্রয়োজন অনুযায়ী
       };
       const mockToken = "mock-token-123";
       login(mockUser, mockToken);
@@ -118,7 +118,6 @@ const LoginPage = () => {
         />
 
         {/* Left — Branding (desktop only) */}
-        {/* Left — Branding */}
         <div
           style={{
             width: "45%",

@@ -777,7 +777,6 @@ const PasswordTab = () => {
     setForm({ current: "", newPass: "", confirm: "" });
   };
 
-  
   return (
     <div>
       <div style={{ marginBottom: "32px" }}>
@@ -885,7 +884,7 @@ const DashboardPage = () => {
 
   return (
     <>
-  <style>{`
+      <style>{`
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
@@ -939,18 +938,18 @@ const DashboardPage = () => {
             </h1>
           </div>
 
-<div
-  className="dashboard-grid"
-  style={{
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 260px) 1fr',
-    gap: '32px',
-    alignItems: 'flex-start',
-  }}
->
+          <div
+            className="dashboard-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 260px) 1fr",
+              gap: "32px",
+              alignItems: "flex-start",
+            }}
+          >
             {/* ── Sidebar ───────────────────────────────── */}
             <div
-            className="dashboard-sidebar"
+              className="dashboard-sidebar"
               style={{
                 background: "#111",
                 border: "1px solid #1A1A1A",
@@ -1073,6 +1072,14 @@ const DashboardPage = () => {
                       textAlign: "left",
                       marginBottom: "4px",
                       transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#AAFF00";
+                      e.currentTarget.style.background = "#1A1A1A";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "#AAFF00";
+                      e.currentTarget.style.background = "transparent";
                     }}
                   >
                     🛡️ Admin Panel
