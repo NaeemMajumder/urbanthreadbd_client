@@ -142,6 +142,7 @@ const HeroSection = () => {
           backgroundPosition: "center top",
           transform: loaded ? "scale(1)" : "scale(1.05)",
           transition: "transform 1.2s ease, background-image 0.5s ease",
+          
         }}
       />
 
