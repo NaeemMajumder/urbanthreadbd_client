@@ -13,6 +13,8 @@
 
   --font-heading: 'Bebas Neue', cursive;
   --font-body: 'Inter', sans-serif;
+
+  --spacing: 0.25rem;  /* ← এই line টা add করো */
 }
 
 * {

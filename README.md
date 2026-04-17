@@ -22,3 +22,26 @@ src/
 ├── hooks/
 │   └── useAuth.js
 └── App.jsx
+
+
+Final Structure এখন:
+src/
+├── api/
+│   └── axios.js
+├── context/
+│   ├── AuthContext.jsx
+│   └── CartContext.jsx
+├── hooks/
+│   ├── useAuth.js
+│   └── useCart.js
+├── routes/
+│   ├── AppRoutes.jsx       ← সব routes
+│   ├── ProtectedRoute.jsx  ← login check
+│   └── AdminRoute.jsx      ← admin check
+├── components/
+│   ├── common/
+│   └── layout/
+├── pages/
+│   └── admin/
+├── App.jsx                 ← clean, শুধু providers
+└── index.css
