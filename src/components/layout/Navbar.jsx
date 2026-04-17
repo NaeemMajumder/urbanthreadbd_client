@@ -30,7 +30,7 @@ const Navbar = () => {
   const navLinks = [
     { label: "Home", to: "/" },
     { label: "Shop", to: "/products" },
-    { label: "Categories", to: "/products?view=categories" },
+    { label: "Categories", to: '/categories' },
   ];
 
   return (
@@ -54,6 +54,7 @@ const Navbar = () => {
               <NavLink
                 key={link.to}
                 to={link.to}
+                end 
                 className={({ isActive }) =>
                   `text-sm font-medium tracking-widest uppercase transition-colors duration-200 ${
                     isActive

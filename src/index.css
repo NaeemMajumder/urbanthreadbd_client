@@ -16,6 +16,10 @@
 
   --spacing: 0.25rem;  /* ← এই line টা add করো */
 }
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(10px); }
+}
 
 * {
   margin: 0;
@@ -41,3 +45,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .neon-glow { box-shadow: 0 0 20px rgba(170, 255, 0, 0.3); }
 .text-neon-glow { text-shadow: 0 0 20px rgba(170, 255, 0, 0.5); }
+
+.hero-section {
+  height: 100vh;
+  min-height: 600px;
+  max-height: 900px;
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    height: 580px;
+    min-height: unset;
+    max-height: unset;
+  }
+}

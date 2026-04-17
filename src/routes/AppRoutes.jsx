@@ -1,24 +1,20 @@
-import { Routes, Route } from 'react-router-dom'
-import MainLayout from '../components/layout/MainLayout'
-import ProtectedRoute from './ProtectedRoute'
-import AdminRoute from './AdminRoute'
+import { Routes, Route } from "react-router-dom";
+import MainLayout from "../components/layout/MainLayout";
+import ProtectedRoute from "./ProtectedRoute";
+import AdminRoute from "./AdminRoute";
+import HomePage from '../pages/HomePage';
+import ProductsPage from '../pages/ProductsPage';
 
 const AppRoutes = () => {
   return (
     <Routes>
       <Route element={<MainLayout />}>
-        {/* Public */}
-        <Route path="/" element={
-          <div className="flex items-center justify-center h-96">
-            <p className="text-[#AAFF00] font-mono text-xl">
-              UrbanThread BD ✅ — Navbar Ready!
-            </p>
-          </div>
-        } />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/products" element={<ProductsPage />} />
         {/* বাকি routes পরে */}
       </Route>
     </Routes>
-  )
-}
+  );
+};
 
-export default AppRoutes
+export default AppRoutes;
