@@ -9,7 +9,8 @@ import CartPage from "../pages/CartPage";
 import CheckoutPage from "../pages/CheckoutPage";
 import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
-import CategoriesPage from '../pages/CategoriesPage';
+import CategoriesPage from "../pages/CategoriesPage";
+import DashboardPage from "../pages/DashboardPage";
 
 const AppRoutes = () => {
   return (
@@ -21,6 +22,14 @@ const AppRoutes = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
         {/* বাকি routes পরে */}
       </Route>
       {/* MainLayout এর বাইরে রাখো — Login/Register এ Navbar/Footer লাগবে না */}

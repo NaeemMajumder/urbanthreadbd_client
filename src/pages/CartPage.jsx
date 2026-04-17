@@ -16,14 +16,14 @@ const CartPage = () => {
   const deliveryCharge = cartTotal >= FREE_DELIVERY_ABOVE ? 0 : DELIVERY_CHARGE;
   const finalTotal = cartTotal + deliveryCharge;
 
-    const handleCheckout = () => {
-      if (!isLoggedIn) {
-        toast.error("Please login to checkout");
-        navigate("/login");
-        return;
-      }
-      navigate("/checkout");
-    };
+const handleCheckout = () => {
+  if (!isLoggedIn) {
+    toast.error('Please login to checkout')
+    navigate('/login', { state: { from: '/checkout' } })
+    return
+  }
+  navigate('/checkout')
+}
 
 //   const handleCheckout = () => {
 //     navigate("/checkout");
