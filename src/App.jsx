@@ -12,7 +12,7 @@ import { cartAPI } from "./api/cart.api";
 function App() {
 const CartSync = () => {
   const { isLoggedIn } = useAuth()
-  const { loadCartFromBackend, cartItems, addToCart } = useCart()
+  const { loadCartFromBackend } = useCart()
 
   useEffect(() => {
     if (isLoggedIn) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   User,
@@ -14,75 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import toast from "react-hot-toast";
-
-// ── Mock Orders ──────────────────────────────────────────────
-const mockOrders = [
-  {
-    _id: "ORD-001",
-    createdAt: "2025-04-10",
-    items: [
-      {
-        name: "Oversized Urban Tee",
-        size: "M",
-        color: "black",
-        quantity: 2,
-        price: 950,
-      },
-      {
-        name: "UT Signature Cap",
-        size: "Free",
-        color: "black",
-        quantity: 1,
-        price: 650,
-      },
-    ],
-    totalAmount: 2550,
-    deliveryCharge: 0,
-    orderStatus: "delivered",
-    paymentMethod: "cod",
-  },
-  {
-    _id: "ORD-002",
-    createdAt: "2025-04-14",
-    items: [
-      {
-        name: "Street Hoodie Black",
-        size: "L",
-        color: "black",
-        quantity: 1,
-        price: 1999,
-      },
-    ],
-    totalAmount: 1999,
-    deliveryCharge: 60,
-    orderStatus: "shipped",
-    paymentMethod: "bkash",
-  },
-  {
-    _id: "ORD-003",
-    createdAt: "2025-04-17",
-    items: [
-      {
-        name: "Cargo Jogger Grey",
-        size: "M",
-        color: "grey",
-        quantity: 1,
-        price: 1499,
-      },
-      {
-        name: "Graphic Print Tee",
-        size: "L",
-        color: "white",
-        quantity: 2,
-        price: 1100,
-      },
-    ],
-    totalAmount: 3699,
-    deliveryCharge: 0,
-    orderStatus: "processing",
-    paymentMethod: "cod",
-  },
-];
+import { orderAPI } from "../api/order.api";
 
 const statusConfig = {
   pending: { label: "Pending", color: "#888", bg: "rgba(136,136,136,0.1)" },
@@ -108,7 +40,40 @@ const menuItems = [
 
 // ── Orders Tab ───────────────────────────────────────────────
 const OrdersTab = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await orderAPI.getMyOrders();
+        setOrders(res.data.data);
+      } catch (err) {
+        console.error("Orders fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  if (loading)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "80px",
+              background: "#111",
+              borderRadius: "10px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <div>
@@ -133,11 +98,11 @@ const OrdersTab = () => {
             marginTop: "6px",
           }}
         >
-          MY ORDERS ({mockOrders.length})
+          MY ORDERS ({orders.length})
         </h2>
       </div>
 
-      {mockOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 20px" }}>
           <div style={{ fontSize: "3rem", marginBottom: "16px", opacity: 0.3 }}>
             📦
@@ -158,7 +123,7 @@ const OrdersTab = () => {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {mockOrders.map((order, i) => {
+          {orders.map((order, i) => {
             const status =
               statusConfig[order.orderStatus] || statusConfig.pending;
             const isExpanded = expanded === order._id;
@@ -196,7 +161,6 @@ const OrdersTab = () => {
                       flexWrap: "wrap",
                     }}
                   >
-                    {/* Order ID */}
                     <div>
                       <p
                         style={{
@@ -212,16 +176,13 @@ const OrdersTab = () => {
                       <p
                         style={{
                           color: "#F0F0F0",
-                          fontSize: "14px",
+                          fontSize: "13px",
                           fontWeight: "700",
                           fontFamily: "monospace",
                         }}
-                      >
-                        #{order._id}
+                      >ORD-{order._id.slice(-8).toUpperCase()}
                       </p>
                     </div>
-
-                    {/* Date */}
                     <div>
                       <p
                         style={{
@@ -235,11 +196,9 @@ const OrdersTab = () => {
                         Date
                       </p>
                       <p style={{ color: "#888", fontSize: "13px" }}>
-                        {order.createdAt}
+                        {new Date(order.createdAt).toLocaleDateString("en-BD")}
                       </p>
                     </div>
-
-                    {/* Items count */}
                     <div>
                       <p
                         style={{
@@ -256,8 +215,6 @@ const OrdersTab = () => {
                         {order.items.length} items
                       </p>
                     </div>
-
-                    {/* Total */}
                     <div>
                       <p
                         style={{
@@ -292,7 +249,6 @@ const OrdersTab = () => {
                       gap: "12px",
                     }}
                   >
-                    {/* Status Badge */}
                     <span
                       style={{
                         padding: "4px 12px",
@@ -301,13 +257,10 @@ const OrdersTab = () => {
                         color: status.color,
                         fontSize: "11px",
                         fontWeight: "700",
-                        letterSpacing: "0.05em",
                       }}
                     >
                       ● {status.label}
                     </span>
-
-                    {/* Expand icon */}
                     <ChevronRight
                       size={16}
                       color="#555"
@@ -319,7 +272,7 @@ const OrdersTab = () => {
                   </div>
                 </div>
 
-                {/* Order Details — Expanded */}
+                {/* Expanded Details */}
                 {isExpanded && (
                   <div
                     style={{
@@ -330,7 +283,7 @@ const OrdersTab = () => {
                   >
                     {order.items.map((item, j) => (
                       <div
-                        key={j}
+                        key={item._id}
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
@@ -342,9 +295,8 @@ const OrdersTab = () => {
                               : "none",
                         }}
                       >
-                        {/* Left — Image + Info */}
                         <Link
-                          to={`/products/${j + 1}`}
+                          to={`/products/${item.productId}`}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -365,26 +317,31 @@ const OrdersTab = () => {
                               justifyContent: "center",
                               fontSize: "1.5rem",
                               opacity: 0.6,
-                              transition: "opacity 0.2s ease",
                             }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.opacity = "1")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.opacity = "0.6")
-                            }
                           >
-                            {item.name?.toLowerCase().includes("hoodie")
-                              ? "🧥"
-                              : item.name?.toLowerCase().includes("jogger") ||
-                                  item.name?.toLowerCase().includes("pant")
-                                ? "👖"
-                                : item.name?.toLowerCase().includes("cap") ||
-                                    item.name
-                                      ?.toLowerCase()
-                                      .includes("snapback")
-                                  ? "🧢"
-                                  : "👕"}
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                }}
+                                onError={(e) =>
+                                  (e.target.style.display = "none")
+                                }
+                              />
+                            ) : item.name?.toLowerCase().includes("hoodie") ? (
+                              "🧥"
+                            ) : item.name?.toLowerCase().includes("jogger") ? (
+                              "👖"
+                            ) : item.name?.toLowerCase().includes("cap") ? (
+                              "🧢"
+                            ) : (
+                              "👕"
+                            )}
                           </div>
                           <div>
                             <p
@@ -402,8 +359,6 @@ const OrdersTab = () => {
                             </p>
                           </div>
                         </Link>
-
-                        {/* Right — Price */}
                         <span
                           style={{
                             color: "#888",

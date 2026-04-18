@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { CheckCircle, ChevronDown, Truck, Smartphone } from "lucide-react";
 import toast from "react-hot-toast";
 import { useEffect } from "react";
+import { orderAPI } from "../api/order.api";
 
 const DELIVERY_CHARGE = 60;
 const FREE_DELIVERY_ABOVE = 999;
@@ -395,15 +396,33 @@ const CheckoutPage = () => {
     processOrder();
   };
 
-  const processOrder = () => {
+  const processOrder = async () => {
     setLoading(true);
-    const id = Date.now().toString().slice(-8);
-    setTimeout(() => {
-      setOrderId(id);
+    try {
+      const orderData = {
+        paymentMethod,
+        deliveryAddress: {
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          fullAddress: form.fullAddress.trim(),
+          city: form.city.trim(),
+          district: form.district,
+        },
+      };
+
+      const res = await orderAPI.create(orderData);
+      const orderId = res.data.data._id;
+
       clearCart();
-      setLoading(false);
+      setOrderId(orderId);
       setOrderPlaced(true);
-    }, 1500);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Order place হয়নি। আবার try করো।",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleContinue = (path) => navigate(path);
