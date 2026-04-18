@@ -18,9 +18,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('ut_token')
-      localStorage.removeItem('ut_user')
-      window.location.href = '/login'
+      // Login page এ থাকলে redirect করবো না
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        localStorage.removeItem('ut_token')
+        localStorage.removeItem('ut_user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

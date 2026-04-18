@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import api from "../api/axios";
+import { authAPI } from "../api/auth.api";
 import toast from "react-hot-toast";
 import logoDark from "../assets/logo-dark.png";
 
@@ -21,38 +21,44 @@ const LoginPage = () => {
 
   const handleSubmit = async () => {
     if (!form.phone.trim()) return toast.error("Phone number দাও");
-
-    // Phone validation add করো
     const phoneRegex = /^(\+880|880|0)1[3-9]\d{8}$/;
-    if (!phoneRegex.test(form.phone.trim())) {
-      return toast.error("Valid Bangladeshi phone number দাও (01XXXXXXXXX)");
-    }
-
+    if (!phoneRegex.test(form.phone.trim()))
+      return toast.error("Valid phone number দাও (01XXXXXXXXX)");
     if (!form.password.trim()) return toast.error("Password দাও");
     if (form.password.length < 6)
-      return toast.error("Password কমপক্ষে ৬ characters হতে হবে");
+      return toast.error("Password কমপক্ষে ৬ characters");
 
-    // বাকি সব same
     setLoading(true);
     try {
-      const mockUser = {
-        _id: "1",
-        name: "Demo User",
-        phone: form.phone,
-        role: "admin",
-      };
-      login(mockUser, "mock-token-123");
-      toast.success("Login successful!");
+      const res = await authAPI.login({
+        phone: form.phone.trim(),
+        password: form.password,
+      });
+      const { user, token } = res.data.data;
+      login(user, token);
+      toast.success(`Welcome back, ${user.name}!`);
       navigate(from, { replace: true });
     } catch (err) {
-      toast.error("Login failed");
+
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Phone বা password ভুল হয়েছে";
+
+      toast.error(message);
+
+      // Password field clear করো
+      setForm((prev) => ({ ...prev, password: "" }));
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") handleSubmit();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const inputStyle = {
@@ -82,7 +88,6 @@ const LoginPage = () => {
     <>
       <style>{`
         @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
         input:focus { border-color: #AAFF00 !important; }
       `}</style>
 
@@ -121,8 +126,9 @@ const LoginPage = () => {
           }}
         />
 
-        {/* Left — Branding (desktop only) */}
+        {/* Left — Branding */}
         <div
+          className="login-left"
           style={{
             width: "45%",
             flexShrink: 0,
@@ -131,23 +137,19 @@ const LoginPage = () => {
             padding: "60px",
             flexDirection: "column",
             justifyContent: "space-between",
-            display: "none", // default hidden
+            display: "none",
           }}
-          className="login-left"
         >
-          {/* Top — Logo */}
           <img
             src={logoDark}
             alt="UrbanThread BD"
             style={{
-              height: "52px",
+              height: "32px",
               width: "auto",
               objectFit: "contain",
               display: "block",
             }}
           />
-
-          {/* Middle — Text */}
           <div>
             <h2
               style={{
@@ -173,8 +175,6 @@ const LoginPage = () => {
               Login করো এবং তোমার favorite streetwear collection explore করো।
             </p>
           </div>
-
-          {/* Bottom — Copyright */}
           <p style={{ color: "#444", fontSize: "12px" }}>
             © 2025 UrbanThread BD
           </p>
@@ -204,12 +204,15 @@ const LoginPage = () => {
                 <img
                   src={logoDark}
                   alt="UrbanThread BD"
-                  style={{ height: "32px", width: "auto" }}
+                  style={{
+                    height: "32px",
+                    width: "auto",
+                    objectFit: "contain",
+                  }}
                 />
               </Link>
             </div>
 
-            {/* Title */}
             <div style={{ marginBottom: "32px" }}>
               <h1
                 style={{
@@ -227,7 +230,6 @@ const LoginPage = () => {
               </p>
             </div>
 
-            {/* Form */}
             <div style={{ marginBottom: "20px" }}>
               <label style={labelStyle}>Phone Number</label>
               <input
@@ -271,8 +273,8 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Login Button */}
             <button
+              type="button" // ← add করো
               onClick={handleSubmit}
               disabled={loading}
               style={{
@@ -318,7 +320,6 @@ const LoginPage = () => {
               )}
             </button>
 
-            {/* Divider */}
             <div
               style={{
                 display: "flex",
@@ -332,7 +333,6 @@ const LoginPage = () => {
               <div style={{ flex: 1, height: "1px", background: "#1A1A1A" }} />
             </div>
 
-            {/* Register Link */}
             <p style={{ textAlign: "center", color: "#555", fontSize: "14px" }}>
               Account নেই?{" "}
               <Link
@@ -347,12 +347,11 @@ const LoginPage = () => {
               </Link>
             </p>
 
-            {/* Back to home */}
             <p style={{ textAlign: "center", marginTop: "24px" }}>
               <Link
                 to="/"
                 style={{
-                  color: "#555", // ← #333 থেকে #555
+                  color: "#555",
                   fontSize: "12px",
                   textDecoration: "none",
                   transition: "color 0.2s ease",
@@ -367,12 +366,7 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Desktop left panel show */}
-      <style>{`
-        @media (min-width: 900px) {
-          .login-left { display: flex !important; }
-        }
-      `}</style>
+      <style>{`@media (min-width: 900px) { .login-left { display: flex !important; } }`}</style>
     </>
   );
 };
