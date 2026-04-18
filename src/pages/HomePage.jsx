@@ -6,7 +6,7 @@ import heroBanner3 from "../assets/hero-banner3.png";
 import heroBanner4 from "../assets/hero-banner4.png";
 import heroBanner5 from "../assets/hero-banner5.png";
 import { productAPI } from "../api/product.api";
-import { categoryAPI } from '../api/category.api';
+import { categoryAPI } from "../api/category.api";
 
 // ── Animations ──────────────────────────────────────────────
 const fadeUpStyle = (delay = 0, visible = false) => ({
@@ -61,24 +61,6 @@ const useInView = (threshold = 0.15) => {
   }, []);
   return [ref, visible];
 };
-
-// ── Category Data ────────────────────────────────────────────
-const categories = [
-  {
-    label: "T-Shirts",
-    slug: "tshirt",
-    emoji: "👕",
-    desc: "Urban cuts, bold prints",
-  },
-  {
-    label: "Hoodies",
-    slug: "hoodie",
-    emoji: "🧥",
-    desc: "Street-ready warmth",
-  },
-  { label: "Joggers", slug: "jogger", emoji: "👖", desc: "Move in style" },
-  { label: "Caps", slug: "cap", emoji: "🧢", desc: "Top it off" },
-];
 
 // ── Features Data ────────────────────────────────────────────
 const features = [
@@ -561,17 +543,36 @@ const CategoriesSection = () => {
                   e.currentTarget.style.background = "#111";
                 }}
               >
-                {/* Emoji */}
-                <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>
-                  {cat.slug?.includes("shirt")
-                    ? "👕"
-                    : cat.slug?.includes("hoodie")
-                      ? "🧥"
-                      : cat.slug?.includes("jogger")
-                        ? "👖"
-                        : cat.slug?.includes("cap")
-                          ? "🧢"
-                          : "👗"}
+                {/* Image or Emoji */}
+                <div style={{ marginBottom: "16px" }}>
+                  {cat.image && !cat.image.includes("example.com") ? (
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      style={{
+                        width: "60px",
+                        height: "60px",
+                        objectFit: "cover",
+                        borderRadius: "10px",
+                        border: "1px solid #1A1A1A",
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: "2.5rem" }}>
+                      {cat.slug?.includes("shirt")
+                        ? "👕"
+                        : cat.slug?.includes("hoodie")
+                          ? "🧥"
+                          : cat.slug?.includes("jogger")
+                            ? "👖"
+                            : cat.slug?.includes("cap")
+                              ? "🧢"
+                              : "👗"}
+                    </div>
+                  )}
                 </div>
 
                 <h3
@@ -833,7 +834,7 @@ const ProductCard = ({ product, index, visible }) => {
             marginBottom: "6px",
           }}
         >
-          {product.category}
+          {product.category?.name || product.category || ""}
         </p>
         <h3
           style={{

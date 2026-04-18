@@ -3,45 +3,6 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { categoryAPI } from "../api/category.api";
 
-const categoriesData = [
-  {
-    slug: "tshirt",
-    label: "T-Shirts",
-    emoji: "👕",
-    desc: "Urban cuts, bold prints। Everyday streetwear essentials।",
-    count: 45,
-    tags: ["Oversized", "Graphic", "Plain", "Polo"],
-    featured: true,
-  },
-  {
-    slug: "hoodie",
-    label: "Hoodies",
-    emoji: "🧥",
-    desc: "Street-ready warmth। Heavy fleece, zip-up, pullover।",
-    count: 28,
-    tags: ["Pullover", "Zip-Up", "Heavy Fleece", "Cropped"],
-    featured: true,
-  },
-  {
-    slug: "jogger",
-    label: "Joggers",
-    emoji: "👖",
-    desc: "Move in style। Cargo, slim fit, tapered cut।",
-    count: 32,
-    tags: ["Cargo", "Slim Fit", "Tapered", "Wide Leg"],
-    featured: false,
-  },
-  {
-    slug: "cap",
-    label: "Caps",
-    emoji: "🧢",
-    desc: "Top it off। Snapback, fitted, dad hat।",
-    count: 19,
-    tags: ["Snapback", "Fitted", "Dad Hat", "Embroidered"],
-    featured: false,
-  },
-];
-
 const CategoriesPage = () => {
   const [hovered, setHovered] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -221,16 +182,38 @@ const CategoriesPage = () => {
                     }}
                   />
                   {/* Emoji — backend এ নেই, slug দিয়ে দেখাও */}
-                  <div style={{ fontSize: "3.5rem", marginBottom: "20px" }}>
-                    {cat.slug === "tshirt" || cat.slug?.includes("shirt")
-                      ? "👕"
-                      : cat.slug === "hoodie" || cat.slug?.includes("hoodie")
-                        ? "🧥"
-                        : cat.slug === "jogger" || cat.slug?.includes("jogger")
-                          ? "👖"
-                          : cat.slug === "cap" || cat.slug?.includes("cap")
-                            ? "🧢"
-                            : "👗"}
+                  {/* Image or Emoji */}
+                  <div style={{ marginBottom: "20px" }}>
+                    {cat.image && !cat.image.includes("example.com") ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        style={{
+                          width: "80px",
+                          height: "80px",
+                          objectFit: "cover",
+                          borderRadius: "12px",
+                          border: "1px solid #1A1A1A",
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: "3.5rem" }}>
+                        {cat.slug === "tshirt" || cat.slug?.includes("shirt")
+                          ? "👕"
+                          : cat.slug === "hoodie" ||
+                              cat.slug?.includes("hoodie")
+                            ? "🧥"
+                            : cat.slug === "jogger" ||
+                                cat.slug?.includes("jogger")
+                              ? "👖"
+                              : cat.slug === "cap" || cat.slug?.includes("cap")
+                                ? "🧢"
+                                : "👗"}
+                      </div>
+                    )}
                   </div>
 
                   {/* Name */}
@@ -348,17 +331,36 @@ const CategoriesPage = () => {
                     }}
                   >
                     {/* Emoji */}
-                    <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>
-                      {cat.slug === "tshirt" || cat.slug?.includes("shirt")
-                        ? "👕"
-                        : cat.slug === "hoodie" || cat.slug?.includes("hoodie")
-                          ? "🧥"
-                          : cat.slug === "jogger" ||
-                              cat.slug?.includes("jogger")
-                            ? "👖"
-                            : cat.slug === "cap" || cat.slug?.includes("cap")
-                              ? "🧢"
-                              : "👗"}
+                    {/* Image or Emoji */}
+                    <div style={{ marginBottom: "20px" }}>
+                      {cat.image && !cat.image.includes("example.com") ? (
+                        <img
+                          src={cat.image}
+                          alt={cat.name}
+                          style={{
+                            width: "80px",
+                            height: "80px",
+                            objectFit: "cover",
+                            borderRadius: "12px",
+                            border: "1px solid #1A1A1A",
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: "3.5rem" }}>
+                          {cat.slug?.includes("shirt")
+                            ? "👕"
+                            : cat.slug?.includes("hoodie")
+                              ? "🧥"
+                              : cat.slug?.includes("jogger")
+                                ? "👖"
+                                : cat.slug?.includes("cap")
+                                  ? "🧢"
+                                  : "👗"}
+                        </div>
+                      )}
                     </div>
 
                     {/* Name */}

@@ -5,6 +5,7 @@ import { useCart } from "../hooks/useCart";
 import { productAPI } from "../api/product.api";
 import { reviewAPI } from "../api/review.api";
 import toast from "react-hot-toast";
+import { useAuth } from "../hooks/useAuth";
 
 const colorMap = {
   black: "#1a1a1a",
@@ -34,6 +35,15 @@ const ProductDetailPage = () => {
   const [activeTab, setActiveTab] = useState("description");
   const [avgRating, setAvgRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+
+  const { isLoggedIn, user } = useAuth();
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const [editingReview, setEditingReview] = useState(null); // review _id
+  const [editForm, setEditForm] = useState({ rating: 0, comment: "" });
+  const [deletingReview, setDeletingReview] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -101,6 +111,88 @@ const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [id]);
+
+  const handleReviewSubmit = async () => {
+    if (!isLoggedIn) return toast.error("Review দিতে login করো");
+    if (reviewForm.rating === 0) return toast.error("Rating দাও");
+    if (!reviewForm.comment.trim()) return toast.error("Comment লিখো");
+
+    setSubmittingReview(true);
+    try {
+      await reviewAPI.create(id, {
+        rating: reviewForm.rating,
+        comment: reviewForm.comment.trim(),
+      });
+      toast.success("Review দেওয়া হয়েছে!");
+      setReviewForm({ rating: 0, comment: "" });
+
+      // Reviews reload করো
+      const reviewRes = await reviewAPI.getByProduct(id);
+      const reviewData = reviewRes.data.data || [];
+      setReviews(reviewData);
+      if (reviewData.length > 0) {
+        const avg =
+          reviewData.reduce((sum, r) => sum + r.rating, 0) / reviewData.length;
+        setAvgRating(Math.round(avg * 10) / 10);
+        setReviewCount(reviewData.length);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Review দেওয়া হয়নি");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleReviewEdit = async (reviewId) => {
+    if (!editForm.rating) return toast.error("Rating দাও");
+    if (!editForm.comment.trim()) return toast.error("Comment লিখো");
+
+    try {
+      await reviewAPI.update(reviewId, {
+        rating: editForm.rating,
+        comment: editForm.comment.trim(),
+      });
+      toast.success("Review update হয়েছে!");
+      setEditingReview(null);
+
+      // Reload reviews
+      const reviewRes = await reviewAPI.getByProduct(id);
+      const reviewData = reviewRes.data.data || [];
+      setReviews(reviewData);
+      if (reviewData.length > 0) {
+        const avg =
+          reviewData.reduce((sum, r) => sum + r.rating, 0) / reviewData.length;
+        setAvgRating(Math.round(avg * 10) / 10);
+        setReviewCount(reviewData.length);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update হয়নি");
+    }
+  };
+
+  const handleReviewDelete = async (reviewId) => {
+    try {
+      await reviewAPI.delete(reviewId);
+      toast.success("Review delete হয়েছে!");
+      setDeletingReview(null);
+
+      // Reload reviews
+      const reviewRes = await reviewAPI.getByProduct(id);
+      const reviewData = reviewRes.data.data || [];
+      setReviews(reviewData);
+      if (reviewData.length > 0) {
+        const avg =
+          reviewData.reduce((sum, r) => sum + r.rating, 0) / reviewData.length;
+        setAvgRating(Math.round(avg * 10) / 10);
+        setReviewCount(reviewData.length);
+      } else {
+        setAvgRating(0);
+        setReviewCount(0);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Delete হয়নি");
+    }
+  };
 
   if (loading)
     return (
@@ -849,6 +941,153 @@ const ProductDetailPage = () => {
             {/* Tab Content */}
             {activeTab === "reviews" && (
               <div>
+                {/* Review Form */}
+                {isLoggedIn && (
+                  <div
+                    style={{
+                      background: "#111",
+                      border: "1px solid #1A1A1A",
+                      borderRadius: "10px",
+                      padding: "24px",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontFamily: "'Bebas Neue', cursive",
+                        fontSize: "1.3rem",
+                        color: "#F0F0F0",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      WRITE A REVIEW
+                    </h3>
+
+                    {/* Star Rating */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <p
+                        style={{
+                          color: "#888",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Rating *
+                      </p>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() =>
+                              setReviewForm((p) => ({ ...p, rating: s }))
+                            }
+                            onMouseEnter={() => setHoverRating(s)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "2px",
+                            }}
+                          >
+                            <Star
+                              size={28}
+                              fill={
+                                s <= (hoverRating || reviewForm.rating)
+                                  ? "#AAFF00"
+                                  : "none"
+                              }
+                              color={
+                                s <= (hoverRating || reviewForm.rating)
+                                  ? "#AAFF00"
+                                  : "#333"
+                              }
+                              style={{ transition: "all 0.15s ease" }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Comment */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <p
+                        style={{
+                          color: "#888",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Comment *
+                      </p>
+                      <textarea
+                        placeholder="তোমার experience শেয়ার করো..."
+                        value={reviewForm.comment}
+                        onChange={(e) =>
+                          setReviewForm((p) => ({
+                            ...p,
+                            comment: e.target.value,
+                          }))
+                        }
+                        rows={4}
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          background: "#0F0F0F",
+                          border: "1px solid #222",
+                          borderRadius: "8px",
+                          color: "#F0F0F0",
+                          fontSize: "14px",
+                          outline: "none",
+                          resize: "none",
+                          lineHeight: "1.6",
+                          boxSizing: "border-box",
+                          transition: "border-color 0.2s ease",
+                        }}
+                        onFocus={(e) =>
+                          (e.target.style.borderColor = "#AAFF00")
+                        }
+                        onBlur={(e) => (e.target.style.borderColor = "#222")}
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleReviewSubmit}
+                      disabled={submittingReview}
+                      style={{
+                        padding: "10px 24px",
+                        background: submittingReview ? "#888" : "#AAFF00",
+                        color: "#0A0A0A",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: submittingReview ? "not-allowed" : "pointer",
+                        fontWeight: "800",
+                        fontSize: "13px",
+                        transition: "all 0.2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!submittingReview)
+                          e.currentTarget.style.background = "#88CC00";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!submittingReview)
+                          e.currentTarget.style.background = submittingReview
+                            ? "#888"
+                            : "#AAFF00";
+                      }}
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Reviews List */}
                 {reviews.length === 0 ? (
                   <div
                     style={{
@@ -858,88 +1097,408 @@ const ProductDetailPage = () => {
                     }}
                   >
                     <p style={{ fontSize: "14px" }}>এখনো কোনো review নেই।</p>
+                    {!isLoggedIn && (
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          marginTop: "8px",
+                          color: "#444",
+                        }}
+                      >
+                        Review দিতে{" "}
+                        <Link
+                          to="/login"
+                          style={{ color: "#AAFF00", textDecoration: "none" }}
+                        >
+                          login করো
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  reviews.map((review, i) => (
+                  reviews.map((review) => (
                     <div
                       key={review._id}
                       style={{
-                        padding: "20px",
+                        padding: "20px 24px",
                         background: "#111",
                         border: "1px solid #1A1A1A",
-                        borderRadius: "8px",
+                        borderRadius: "12px",
                         marginBottom: "12px",
+                        transition: "border-color 0.2s ease",
                       }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.borderColor = "#2A2A2A")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.borderColor = "#1A1A1A")
+                      }
                     >
+                      {/* Header */}
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          marginBottom: "8px",
+                          alignItems: "flex-start",
+                          marginBottom: "12px",
                         }}
                       >
                         <div
                           style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: "10px",
+                            gap: "12px",
                           }}
                         >
+                          {/* Avatar */}
                           <div
                             style={{
-                              width: "36px",
-                              height: "36px",
+                              width: "42px",
+                              height: "42px",
                               borderRadius: "50%",
-                              background: "#AAFF00",
+                              background:
+                                "linear-gradient(135deg, #AAFF00, #88CC00)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
                               color: "#0A0A0A",
                               fontWeight: "800",
-                              fontSize: "14px",
+                              fontSize: "16px",
+                              flexShrink: 0,
+                              boxShadow: "0 0 12px rgba(170,255,0,0.2)",
                             }}
                           >
-                            {review.userId?.name?.charAt(0) || "U"}
+                            {review.userId?.name?.charAt(0).toUpperCase() ||
+                              "U"}
                           </div>
+
                           <div>
                             <p
                               style={{
                                 color: "#F0F0F0",
                                 fontSize: "14px",
-                                fontWeight: "600",
+                                fontWeight: "700",
+                                marginBottom: "4px",
                               }}
                             >
                               {review.userId?.name || "User"}
                             </p>
-                            <div style={{ display: "flex", gap: "2px" }}>
+                            {/* Stars */}
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "3px",
+                                alignItems: "center",
+                              }}
+                            >
                               {[1, 2, 3, 4, 5].map((s) => (
                                 <Star
                                   key={s}
-                                  size={11}
+                                  size={13}
                                   fill={s <= review.rating ? "#AAFF00" : "none"}
                                   color={
-                                    s <= review.rating ? "#AAFF00" : "#444"
+                                    s <= review.rating ? "#AAFF00" : "#333"
                                   }
                                 />
                               ))}
+                              <span
+                                style={{
+                                  color: "#555",
+                                  fontSize: "11px",
+                                  marginLeft: "4px",
+                                }}
+                              >
+                                {review.rating}.0
+                              </span>
                             </div>
                           </div>
                         </div>
-                        <span style={{ color: "#555", fontSize: "12px" }}>
-                          {new Date(review.createdAt).toLocaleDateString(
-                            "en-BD",
+
+                        {/* Right — Date + Buttons */}
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            gap: "8px",
+                          }}
+                        >
+                          <span style={{ color: "#444", fontSize: "11px" }}>
+                            {new Date(review.createdAt).toLocaleDateString(
+                              "en-BD",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
+                          </span>
+
+                          {/* Edit/Delete — নিজের review */}
+                          {user?._id === review.userId?._id && (
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                onClick={() => {
+                                  setEditingReview(review._id);
+                                  setEditForm({
+                                    rating: review.rating,
+                                    comment: review.comment,
+                                  });
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  background: "none",
+                                  border: "1px solid #2A2A2A",
+                                  color: "#666",
+                                  borderRadius: "6px",
+                                  padding: "4px 10px",
+                                  cursor: "pointer",
+                                  fontSize: "11px",
+                                  fontWeight: "600",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = "#AAFF00";
+                                  e.currentTarget.style.color = "#AAFF00";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = "#2A2A2A";
+                                  e.currentTarget.style.color = "#666";
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                onClick={() => setDeletingReview(review._id)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  background: "none",
+                                  border: "1px solid #2A2A2A",
+                                  color: "#666",
+                                  borderRadius: "6px",
+                                  padding: "4px 10px",
+                                  cursor: "pointer",
+                                  fontSize: "11px",
+                                  fontWeight: "600",
+                                  transition: "all 0.15s ease",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = "#FF4444";
+                                  e.currentTarget.style.color = "#FF4444";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = "#2A2A2A";
+                                  e.currentTarget.style.color = "#666";
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
                           )}
-                        </span>
+                        </div>
                       </div>
-                      <p
+
+                      {/* Divider */}
+                      <div
                         style={{
-                          color: "#888",
-                          fontSize: "14px",
-                          lineHeight: "1.6",
+                          height: "1px",
+                          background: "#1A1A1A",
+                          marginBottom: "12px",
                         }}
-                      >
-                        {review.comment}
-                      </p>
+                      />
+
+                      {/* Edit Form */}
+                      {editingReview === review._id ? (
+                        <div style={{ animation: "fadeUp 0.2s ease" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "4px",
+                              marginBottom: "12px",
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <button
+                                key={s}
+                                onClick={() =>
+                                  setEditForm((p) => ({ ...p, rating: s }))
+                                }
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  padding: "2px",
+                                  transition: "transform 0.1s ease",
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.transform =
+                                    "scale(1.2)")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.transform = "scale(1)")
+                                }
+                              >
+                                <Star
+                                  size={24}
+                                  fill={
+                                    s <= editForm.rating ? "#AAFF00" : "none"
+                                  }
+                                  color={
+                                    s <= editForm.rating ? "#AAFF00" : "#333"
+                                  }
+                                />
+                              </button>
+                            ))}
+                          </div>
+
+                          <textarea
+                            value={editForm.comment}
+                            onChange={(e) =>
+                              setEditForm((p) => ({
+                                ...p,
+                                comment: e.target.value,
+                              }))
+                            }
+                            rows={3}
+                            style={{
+                              width: "100%",
+                              padding: "12px 14px",
+                              background: "#0F0F0F",
+                              border: "1px solid #333",
+                              borderRadius: "8px",
+                              color: "#F0F0F0",
+                              fontSize: "13px",
+                              outline: "none",
+                              resize: "none",
+                              lineHeight: "1.6",
+                              boxSizing: "border-box",
+                              marginBottom: "12px",
+                            }}
+                            onFocus={(e) =>
+                              (e.target.style.borderColor = "#AAFF00")
+                            }
+                            onBlur={(e) =>
+                              (e.target.style.borderColor = "#333")
+                            }
+                          />
+
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              onClick={() => handleReviewEdit(review._id)}
+                              style={{
+                                padding: "8px 20px",
+                                background: "#AAFF00",
+                                color: "#0A0A0A",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontWeight: "800",
+                                fontSize: "12px",
+                                transition: "all 0.2s ease",
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#88CC00")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "#AAFF00")
+                              }
+                            >
+                              Save Changes
+                            </button>
+                            <button
+                              onClick={() => setEditingReview(null)}
+                              style={{
+                                padding: "8px 20px",
+                                background: "transparent",
+                                color: "#888",
+                                border: "1px solid #333",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Comment */
+                        <p
+                          style={{
+                            color: "#888",
+                            fontSize: "14px",
+                            lineHeight: "1.8",
+                          }}
+                        >
+                          {review.comment}
+                        </p>
+                      )}
+
+                      {/* Delete Confirm */}
+                      {deletingReview === review._id && (
+                        <div
+                          style={{
+                            marginTop: "12px",
+                            padding: "14px 16px",
+                            background: "rgba(255,68,68,0.05)",
+                            border: "1px solid rgba(255,68,68,0.15)",
+                            borderRadius: "8px",
+                            animation: "fadeUp 0.2s ease",
+                          }}
+                        >
+                          <p
+                            style={{
+                              color: "#FF6666",
+                              fontSize: "13px",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            ⚠️ এই review permanently delete হয়ে যাবে।
+                          </p>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              onClick={() => handleReviewDelete(review._id)}
+                              style={{
+                                padding: "7px 18px",
+                                background: "#FF4444",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontWeight: "700",
+                                fontSize: "12px",
+                                transition: "all 0.2s ease",
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#CC0000")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "#FF4444")
+                              }
+                            >
+                              Yes, Delete
+                            </button>
+                            <button
+                              onClick={() => setDeletingReview(null)}
+                              style={{
+                                padding: "7px 18px",
+                                background: "transparent",
+                                color: "#888",
+                                border: "1px solid #333",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

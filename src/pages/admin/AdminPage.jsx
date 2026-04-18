@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createPortal } from 'react-dom'
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -21,71 +21,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import toast from "react-hot-toast";
-
-// ── Mock Data ────────────────────────────────────────────────
-const mockStats = {
-  totalOrders: 128,
-  totalRevenue: 284500,
-  totalProducts: 48,
-  newOrdersToday: 7,
-};
-
-const initialProducts = [
-  {
-    _id: "1",
-    name: "Oversized Urban Tee",
-    price: 1200,
-    discountPrice: 950,
-    category: "tshirt",
-    stock: 10,
-    isActive: true,
-  },
-  {
-    _id: "2",
-    name: "Street Hoodie Black",
-    price: 2500,
-    discountPrice: 1999,
-    category: "hoodie",
-    stock: 5,
-    isActive: true,
-  },
-  {
-    _id: "3",
-    name: "Cargo Jogger Grey",
-    price: 1800,
-    discountPrice: 1499,
-    category: "jogger",
-    stock: 8,
-    isActive: true,
-  },
-  {
-    _id: "4",
-    name: "UT Signature Cap",
-    price: 800,
-    discountPrice: 650,
-    category: "cap",
-    stock: 20,
-    isActive: true,
-  },
-  {
-    _id: "5",
-    name: "Graphic Print Tee",
-    price: 1100,
-    discountPrice: null,
-    category: "tshirt",
-    stock: 0,
-    isActive: false,
-  },
-  {
-    _id: "6",
-    name: "Zip-Up Hoodie Olive",
-    price: 2800,
-    discountPrice: 2299,
-    category: "hoodie",
-    stock: 3,
-    isActive: true,
-  },
-];
+import { productAPI } from "../../api/product.api";
+import { categoryAPI } from "../../api/category.api";
+import { orderAPI } from "../../api/order.api";
+import { userAPI } from "../../api/user.api";
 
 const initialOrders = [
   {
@@ -199,45 +138,6 @@ const initialOrders = [
   },
 ];
 
-const initialUsers = [
-  {
-    _id: "1",
-    name: "Rahim Ahmed",
-    phone: "01711111111",
-    email: "rahim@example.com",
-    orders: 3,
-    joined: "2025-01-10",
-    role: "user",
-  },
-  {
-    _id: "2",
-    name: "Karim Khan",
-    phone: "01722222222",
-    email: "karim@example.com",
-    orders: 1,
-    joined: "2025-02-14",
-    role: "user",
-  },
-  {
-    _id: "3",
-    name: "Nadia Islam",
-    phone: "01733333333",
-    email: "nadia@example.com",
-    orders: 5,
-    joined: "2025-03-01",
-    role: "user",
-  },
-  {
-    _id: "4",
-    name: "Admin User",
-    phone: "01799999999",
-    email: "admin@urbanthread.com",
-    orders: 0,
-    joined: "2025-01-01",
-    role: "admin",
-  },
-];
-
 const statusConfig = {
   pending: { label: "Pending", color: "#888", bg: "rgba(136,136,136,0.1)" },
   processing: {
@@ -253,46 +153,6 @@ const statusConfig = {
   },
 };
 
-const initialCategories = [
-  {
-    _id: "1",
-    name: "T-Shirts",
-    slug: "tshirt",
-    image: "",
-    productCount: 45,
-    parentCategory: null,
-    isActive: true,
-  },
-  {
-    _id: "2",
-    name: "Hoodies",
-    slug: "hoodie",
-    image: "",
-    productCount: 28,
-    parentCategory: null,
-    isActive: true,
-  },
-  {
-    _id: "3",
-    name: "Joggers",
-    slug: "jogger",
-    image: "",
-    productCount: 32,
-    parentCategory: null,
-    isActive: true,
-  },
-  {
-    _id: "4",
-    name: "Caps",
-    slug: "cap",
-    image: "",
-    productCount: 19,
-    parentCategory: null,
-    isActive: true,
-  },
-];
-
-const categories = ["tshirt", "hoodie", "jogger", "cap"];
 const orderStatuses = ["pending", "processing", "shipped", "delivered"];
 
 // ── Confirm Delete Modal ──────────────────────────────────────
@@ -399,7 +259,7 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel }) => (
 
 // ── Order Detail Modal ────────────────────────────────────────
 const OrderDetailModal = ({ order, onClose }) => {
-  const status = statusConfig[order.status];
+  const status = statusConfig[order.orderStatus];
   return (
     <>
       <div
@@ -516,8 +376,8 @@ const OrderDetailModal = ({ order, onClose }) => {
             }}
           >
             {[
-              ["Name", order.user],
-              ["Phone", order.phone],
+              ["Name", order.userId?.name || order.deliveryAddress?.name],
+              ["Phone", order.userId?.phone || order.deliveryAddress?.phone],
             ].map(([l, v]) => (
               <div key={l}>
                 <p
@@ -547,7 +407,8 @@ const OrderDetailModal = ({ order, onClose }) => {
                 Address
               </p>
               <p style={{ color: "#F0F0F0", fontSize: "13px" }}>
-                {order.address}
+                {order.deliveryAddress?.fullAddress},{" "}
+                {order.deliveryAddress?.city}
               </p>
             </div>
           </div>
@@ -652,7 +513,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                 fontWeight: "600",
               }}
             >
-              {order.payment}
+              {order.paymentMethod?.toUpperCase()}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -669,7 +530,7 @@ const OrderDetailModal = ({ order, onClose }) => {
                 lineHeight: 1,
               }}
             >
-              ৳{order.total.toLocaleString()}
+              ৳{(order.totalAmount + order.deliveryCharge).toLocaleString()}
             </span>
           </div>
         </div>
@@ -892,7 +753,7 @@ const UserDetailModal = ({ user, onClose }) => {
                 </div>
               ) : (
                 userOrders.map((order, i) => {
-                  const status = statusConfig[order.status];
+                  const status = statusConfig[order.orderStatus];
                   return (
                     <div
                       key={order._id}
@@ -957,7 +818,10 @@ const UserDetailModal = ({ user, onClose }) => {
                             fontWeight: "800",
                           }}
                         >
-                          ৳{order.total.toLocaleString()}
+                          ৳
+                          {(
+                            order.totalAmount + order.deliveryCharge
+                          ).toLocaleString()}
                         </span>
                       </div>
 
@@ -1002,32 +866,101 @@ const UserDetailModal = ({ user, onClose }) => {
 // ── Stats Tab ─────────────────────────────────────────────────
 const StatsTab = ({ setActiveTab }) => {
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const stats = [
+  const [orders, setOrders] = useState([]);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    totalProducts: 0,
+    newOrdersToday: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const statCards = [
     {
       label: "Total Orders",
-      value: mockStats.totalOrders,
+      value: stats.totalOrders,
       icon: <ShoppingBag size={20} />,
       color: "#00AAFF",
     },
     {
       label: "Total Revenue",
-      value: `৳${mockStats.totalRevenue.toLocaleString()}`,
+      value: `৳${stats.totalRevenue.toLocaleString()}`,
       icon: <DollarSign size={20} />,
       color: "#AAFF00",
     },
     {
       label: "Total Products",
-      value: mockStats.totalProducts,
+      value: stats.totalProducts,
       icon: <Package size={20} />,
       color: "#FF8800",
     },
     {
       label: "New Orders Today",
-      value: mockStats.newOrdersToday,
+      value: stats.newOrdersToday,
       icon: <TrendingUp size={20} />,
       color: "#FF4444",
     },
   ];
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [ordersRes, productsRes] = await Promise.all([
+          orderAPI.getAll(),
+          productAPI.getAll({ limit: 1 }),
+        ]);
+
+        const allOrders = ordersRes.data.data;
+        setOrders(allOrders);
+
+        const today = new Date().toDateString();
+        const newOrdersToday = allOrders.filter(
+          (o) => new Date(o.createdAt).toDateString() === today,
+        ).length;
+
+        const totalRevenue = allOrders.reduce(
+          (sum, o) => sum + o.totalAmount + o.deliveryCharge,
+          0,
+        );
+
+        setStats({
+          totalOrders: allOrders.length,
+          totalRevenue,
+          totalProducts: productsRes.data.data.pagination.total,
+          newOrdersToday,
+        });
+      } catch (err) {
+        console.error("Stats fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading)
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "16px",
+          marginBottom: "40px",
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "120px",
+              background: "#111",
+              borderRadius: "10px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
+    );
   return (
     <div>
       {selectedOrder && (
@@ -1068,7 +1001,7 @@ const StatsTab = ({ setActiveTab }) => {
           marginBottom: "40px",
         }}
       >
-        {stats.map((stat, i) => (
+        {statCards.map((stat, i) => (
           <div
             key={stat.label}
             style={{
@@ -1166,8 +1099,9 @@ const StatsTab = ({ setActiveTab }) => {
             overflow: "hidden",
           }}
         >
-          {initialOrders.map((order, i) => {
-            const status = statusConfig[order.status];
+          {orders.map((order, i) => {
+            const status =
+              statusConfig[order.orderStatus] || statusConfig.pending;
             return (
               <div
                 key={order._id}
@@ -1222,7 +1156,10 @@ const StatsTab = ({ setActiveTab }) => {
                       fontWeight: "800",
                     }}
                   >
-                    ৳{order.total.toLocaleString()}
+                    ৳
+                    {(
+                      order.totalAmount + order.deliveryCharge
+                    ).toLocaleString()}
                   </p>
                   <span
                     style={{
@@ -1249,8 +1186,9 @@ const StatsTab = ({ setActiveTab }) => {
 };
 
 // ── Products Tab ──────────────────────────────────────────────
-const ProductsTab = () => {
-  const [products, setProducts] = useState(initialProducts);
+const ProductsTab = ({ categories = [] }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
@@ -1275,7 +1213,7 @@ const ProductsTab = () => {
       name: "",
       price: "",
       discountPrice: "",
-      category: "tshirt",
+      category: categories[0]?._id || "", // ← first category এর _id
       stock: "",
       isActive: true,
     });
@@ -1309,41 +1247,68 @@ const ProductsTab = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = () => {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await productAPI.getAll({ limit: 100 });
+        setProducts(res.data.data.products);
+      } catch (err) {
+        console.error("Products fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleSave = async () => {
     if (!validate()) return;
-    if (editProduct) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p._id === editProduct._id
-            ? {
-                ...p,
-                ...form,
-                price: Number(form.price),
-                discountPrice: form.discountPrice
-                  ? Number(form.discountPrice)
-                  : null,
-                stock: Number(form.stock),
-              }
-            : p,
-        ),
-      );
-      toast.success("Product updated!");
-    } else {
-      setProducts((prev) => [
-        ...prev,
-        {
-          _id: Date.now().toString(),
-          ...form,
+    try {
+      if (editProduct) {
+        await productAPI.update(editProduct._id, {
+          name: form.name,
           price: Number(form.price),
           discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
+          category: form.category || null,
           stock: Number(form.stock),
-        },
-      ]);
-      toast.success("Product added!");
+          isActive: form.isActive,
+        });
+        toast.success("Product updated!");
+      } else {
+        await productAPI.create({
+          name: form.name,
+          price: Number(form.price),
+          discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
+          category: form.category || null,
+          stock: Number(form.stock),
+          isActive: form.isActive,
+        });
+        toast.success("Product added!");
+      }
+      // Reload
+      const res = await productAPI.getAll({ limit: 100 });
+      setProducts(res.data.data.products);
+      setShowForm(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Save হয়নি");
     }
-    setShowForm(false);
   };
-
+  if (loading)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "56px",
+              background: "#111",
+              borderRadius: "8px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
+    );
   const IS = (err) => ({
     width: "100%",
     padding: "10px 14px",
@@ -1509,9 +1474,16 @@ const ProductsTab = () => {
                     }
                     style={{ ...IS(false), cursor: "pointer" }}
                   >
+                    <option value="" style={{ background: "#111" }}>
+                      No Category
+                    </option>
                     {categories.map((c) => (
-                      <option key={c} value={c} style={{ background: "#111" }}>
-                        {c}
+                      <option
+                        key={c._id}
+                        value={c._id}
+                        style={{ background: "#111" }}
+                      >
+                        {c.name}
                       </option>
                     ))}
                   </select>
@@ -1779,7 +1751,7 @@ const ProductsTab = () => {
                   textTransform: "uppercase",
                 }}
               >
-                {product.category}
+                {product.category?.name || product.category || "—"}
               </span>
               <button
                 onClick={() =>
@@ -1862,18 +1834,65 @@ const ProductsTab = () => {
 
 // ── Orders Tab ────────────────────────────────────────────────
 const OrdersTab = () => {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [statusDropdown, setStatusDropdown] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await orderAPI.getAll();
+        setOrders(res.data.data);
+      } catch (err) {
+        console.error("Orders fetch failed:", err);
+        toast.error("Orders load হয়নি");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+  const updateStatus = async (orderId, newStatus) => {
+    try {
+      await orderAPI.updateStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o._id === orderId ? { ...o, orderStatus: newStatus } : o,
+        ),
+      );
+      setStatusDropdown(null);
+      toast.success("Status updated!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update হয়নি");
+    }
+  };
+
   const filtered = orders
-    .filter((o) => !filterStatus || o.status === filterStatus)
+    .filter((o) => !filterStatus || o.orderStatus === filterStatus)
     .filter(
       (o) =>
-        o.user.toLowerCase().includes(search.toLowerCase()) ||
+        o.userId?.name?.toLowerCase().includes(search.toLowerCase()) ||
         o._id.toLowerCase().includes(search.toLowerCase()),
+    );
+
+  if (loading)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "80px",
+              background: "#111",
+              borderRadius: "10px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
     );
 
   return (
@@ -1970,7 +1989,7 @@ const OrdersTab = () => {
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {filtered.map((order, i) => {
-          const status = statusConfig[order.status];
+          const status = statusConfig[order.orderStatus];
           return (
             <div
               key={order._id}
@@ -2004,14 +2023,20 @@ const OrdersTab = () => {
                 >
                   {[
                     { label: "Order ID", value: `#${order._id}`, mono: true },
-                    { label: "Customer", value: order.user },
+                    {
+                      label: "Customer",
+                      value: order.userId?.name || "Unknown",
+                    },
                     { label: "Date", value: order.date },
                     {
                       label: "Total",
-                      value: `৳${order.total.toLocaleString()}`,
+                      value: `৳${(order.totalAmount + order.deliveryCharge).toLocaleString()}`,
                       accent: true,
                     },
-                    { label: "Payment", value: order.payment.toUpperCase() },
+                    {
+                      label: "Payment",
+                      value: order.paymentMethod?.toUpperCase() || "—",
+                    },
                   ].map((item) => (
                     <div key={item.label}>
                       <p
@@ -2092,22 +2117,14 @@ const OrdersTab = () => {
                       {orderStatuses.map((s) => (
                         <button
                           key={s}
-                          onClick={() => {
-                            setOrders((prev) =>
-                              prev.map((o) =>
-                                o._id === order._id ? { ...o, status: s } : o,
-                              ),
-                            );
-                            setStatusDropdown(null);
-                            toast.success("Status updated!");
-                          }}
+                          onClick={() => updateStatus(order._id, s)}
                           style={{
                             display: "block",
                             width: "100%",
                             textAlign: "left",
                             padding: "10px 14px",
                             background:
-                              order.status === s
+                              order.orderStatus === s
                                 ? "rgba(170,255,0,0.05)"
                                 : "transparent",
                             color: statusConfig[s].color,
@@ -2132,8 +2149,8 @@ const OrdersTab = () => {
   );
 };
 
-const CategoriesTab = () => {
-  const [categories, setCategories] = useState(initialCategories);
+const CategoriesTab = ({ categories, setCategories }) => {
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editCategory, setEditCategory] = useState(null);
@@ -2151,12 +2168,7 @@ const CategoriesTab = () => {
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const generateSlug = (name) =>
-    name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
-
+  // validate() function এর আগে add করো
   const openAdd = () => {
     setEditCategory(null);
     setForm({
@@ -2170,13 +2182,19 @@ const CategoriesTab = () => {
     setShowForm(true);
   };
 
+  const generateSlug = (name) =>
+    name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
   const openEdit = (cat) => {
     setEditCategory(cat);
     setForm({
       name: cat.name,
       slug: cat.slug,
       image: cat.image || "",
-      parentCategory: cat.parentCategory,
+      parentCategory: cat.parentCategory?._id || cat.parentCategory || "",
       isActive: cat.isActive,
     });
     setErrors({});
@@ -2193,26 +2211,55 @@ const CategoriesTab = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSave = () => {
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await categoryAPI.getAll();
+        setCategories(res.data.data);
+      } catch (err) {
+        console.error("Categories fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const handleSave = async () => {
     if (!validate()) return;
-    if (editCategory) {
-      setCategories((prev) =>
-        prev.map((c) => (c._id === editCategory._id ? { ...c, ...form } : c)),
-      );
-      toast.success("Category updated!");
-    } else {
-      setCategories((prev) => [
-        ...prev,
-        {
-          _id: Date.now().toString(),
-          ...form,
-          productCount: 0,
-        },
-      ]);
-      toast.success("Category added!");
+    try {
+      if (editCategory) {
+        await categoryAPI.update(editCategory._id, form);
+        toast.success("Category updated!");
+      } else {
+        await categoryAPI.create(form);
+        toast.success("Category added!");
+      }
+      // Reload
+      const res = await categoryAPI.getAll();
+      setCategories(res.data.data);
+      setShowForm(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Save হয়নি");
     }
-    setShowForm(false);
   };
+
+  if (loading)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "80px",
+              background: "#111",
+              borderRadius: "10px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
+    );
 
   const IS = (err) => ({
     width: "100%",
@@ -2597,8 +2644,8 @@ const CategoriesTab = () => {
             style={{
               background: "#111",
               border: "1px solid #1A1A1A",
-              borderRadius: "10px",
-              padding: "16px 20px",
+              borderRadius: "12px",
+              padding: "20px 24px",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -2607,28 +2654,39 @@ const CategoriesTab = () => {
               transition: "border-color 0.2s ease",
               animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#333")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.borderColor = "#2A2A2A")
+            }
             onMouseLeave={(e) =>
               (e.currentTarget.style.borderColor = "#1A1A1A")
             }
           >
             {/* Left */}
-            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              {/* Image or Emoji */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              {/* Image / Emoji */}
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "8px",
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "10px",
                   background: "#1A1A1A",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                   overflow: "hidden",
+                  border: "1px solid #222",
                 }}
               >
-                {cat.image ? (
+                {cat.image && !cat.image.includes("example.com") ? (
                   <img
                     src={cat.image}
                     alt={cat.name}
@@ -2639,49 +2697,92 @@ const CategoriesTab = () => {
                     }}
                   />
                 ) : (
-                  <span style={{ fontSize: "1.5rem" }}>
-                    {cat.slug === "tshirt"
+                  <span style={{ fontSize: "1.6rem" }}>
+                    {cat.slug?.includes("shirt")
                       ? "👕"
-                      : cat.slug === "hoodie"
+                      : cat.slug?.includes("hoodie") ||
+                          cat.slug?.includes("huddi")
                         ? "🧥"
-                        : cat.slug === "jogger"
+                        : cat.slug?.includes("jogger") ||
+                            cat.slug?.includes("pant")
                           ? "👖"
-                          : "🧢"}
+                          : cat.slug?.includes("cap")
+                            ? "🧢"
+                            : "👗"}
                   </span>
                 )}
               </div>
 
-              <div>
-                <p
+              {/* Info */}
+              <div style={{ minWidth: 0 }}>
+                <div
                   style={{
-                    color: "#F0F0F0",
-                    fontSize: "14px",
-                    fontWeight: "700",
-                    marginBottom: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginBottom: "6px",
+                    flexWrap: "wrap",
                   }}
                 >
-                  {cat.name}
-                </p>
+                  <p
+                    style={{
+                      color: "#F0F0F0",
+                      fontSize: "15px",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {cat.name}
+                  </p>
+                  {cat.parentCategory && (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "20px",
+                        background: "rgba(0,170,255,0.1)",
+                        color: "#00AAFF",
+                        fontSize: "10px",
+                        fontWeight: "700",
+                      }}
+                    >
+                      SUB
+                    </span>
+                  )}
+                </div>
                 <div
-                  style={{ display: "flex", gap: "10px", alignItems: "center" }}
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
                 >
                   <span
                     style={{
-                      color: "#555",
+                      color: "#444",
                       fontSize: "11px",
                       fontFamily: "monospace",
+                      background: "#1A1A1A",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
                     }}
                   >
                     /{cat.slug}
                   </span>
-                  <span style={{ color: "#444", fontSize: "11px" }}>
-                    {cat.productCount} products
-                  </span>
                   {cat.parentCategory && (
-                    <span style={{ color: "#555", fontSize: "11px" }}>
-                      Sub of:{" "}
-                      {categories.find((c) => c._id === cat.parentCategory)
-                        ?.name || "—"}
+                    <span
+                      style={{
+                        color: "#555",
+                        fontSize: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      ↳{" "}
+                      {typeof cat.parentCategory === "object"
+                        ? cat.parentCategory.name
+                        : categories.find((c) => c._id === cat.parentCategory)
+                            ?.name || "—"}
                     </span>
                   )}
                 </div>
@@ -2689,69 +2790,79 @@ const CategoriesTab = () => {
             </div>
 
             {/* Right */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {/* Status */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                flexShrink: 0,
+              }}
+            >
               <span
                 style={{
-                  padding: "4px 10px",
+                  padding: "4px 12px",
                   borderRadius: "20px",
                   fontSize: "10px",
                   fontWeight: "700",
-                  background: cat.isActive
-                    ? "rgba(170,255,0,0.1)"
-                    : "rgba(255,68,68,0.1)",
-                  color: cat.isActive ? "#AAFF00" : "#FF4444",
+                  background:
+                    cat.isActive === false
+                      ? "rgba(255,68,68,0.1)"
+                      : "rgba(170,255,0,0.1)",
+                  color: cat.isActive === false ? "#FF4444" : "#AAFF00",
+                  border: `1px solid ${cat.isActive === false ? "rgba(255,68,68,0.2)" : "rgba(170,255,0,0.2)"}`,
                 }}
               >
-                {cat.isActive ? "ACTIVE" : "INACTIVE"}
+                {cat.isActive === false ? "● INACTIVE" : "● ACTIVE"}
               </span>
 
-              {/* Edit */}
               <button
                 onClick={() => openEdit(cat)}
                 style={{
                   background: "none",
-                  border: "1px solid #333",
-                  color: "#888",
-                  borderRadius: "4px",
-                  padding: "6px 10px",
+                  border: "1px solid #2A2A2A",
+                  color: "#666",
+                  borderRadius: "6px",
+                  padding: "7px 10px",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
+                  display: "flex",
+                  alignItems: "center",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#AAFF00";
                   e.currentTarget.style.color = "#AAFF00";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#333";
-                  e.currentTarget.style.color = "#888";
+                  e.currentTarget.style.borderColor = "#2A2A2A";
+                  e.currentTarget.style.color = "#666";
                 }}
               >
-                <Edit2 size={13} />
+                <Edit2 size={14} />
               </button>
 
-              {/* Delete */}
               <button
                 onClick={() => setDeleteConfirm(cat._id)}
                 style={{
                   background: "none",
-                  border: "1px solid #333",
-                  color: "#888",
-                  borderRadius: "4px",
-                  padding: "6px 10px",
+                  border: "1px solid #2A2A2A",
+                  color: "#666",
+                  borderRadius: "6px",
+                  padding: "7px 10px",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
+                  display: "flex",
+                  alignItems: "center",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#FF4444";
                   e.currentTarget.style.color = "#FF4444";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#333";
-                  e.currentTarget.style.color = "#888";
+                  e.currentTarget.style.borderColor = "#2A2A2A";
+                  e.currentTarget.style.color = "#666";
                 }}
               >
-                <Trash2 size={13} />
+                <Trash2 size={14} />
               </button>
             </div>
           </div>
@@ -2763,13 +2874,48 @@ const CategoriesTab = () => {
 
 // ── Users Tab ─────────────────────────────────────────────────
 const UsersTab = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
-  const filtered = initialUsers.filter(
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await userAPI.getAll();
+        setUsers(res.data.data);
+      } catch (err) {
+        console.error("Users fetch failed:", err);
+        toast.error("Users load হয়নি");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.phone.includes(search),
   );
+
+  if (loading)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              height: "60px",
+              background: "#111",
+              borderRadius: "8px",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <div>
@@ -2800,7 +2946,7 @@ const UsersTab = () => {
             marginTop: "6px",
           }}
         >
-          USER LIST ({initialUsers.length})
+          USER LIST ({users.length})
         </h2>
       </div>
       <div
@@ -2936,7 +3082,7 @@ const UsersTab = () => {
                 {user.orders}
               </span>
               <span style={{ color: "#555", fontSize: "12px" }}>
-                {user.joined}
+                {new Date(user.createdAt).toLocaleDateString("en-BD")}
               </span>
               <span
                 style={{
@@ -2968,7 +3114,7 @@ const UsersTab = () => {
 const adminMenu = [
   { id: "stats", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
   { id: "products", icon: <Package size={18} />, label: "Products" },
-  { id: 'categories', icon: <Tag size={18} />, label: 'Categories' },
+  { id: "categories", icon: <Tag size={18} />, label: "Categories" },
   { id: "orders", icon: <ShoppingBag size={18} />, label: "Orders" },
   { id: "users", icon: <Users size={18} />, label: "Users" },
 ];
@@ -2978,6 +3124,7 @@ const AdminPage = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stats");
+  const [sharedCategories, setSharedCategories] = useState([]);
 
   if (!isAdmin) {
     return (
@@ -3205,8 +3352,15 @@ const AdminPage = () => {
               {activeTab === "stats" && (
                 <StatsTab setActiveTab={setActiveTab} />
               )}
-              {activeTab === "products" && <ProductsTab />}
-              {activeTab === 'categories' && <CategoriesTab />}
+              {activeTab === "products" && (
+                <ProductsTab categories={sharedCategories} />
+              )}
+              {activeTab === "categories" && (
+                <CategoriesTab
+                  categories={sharedCategories}
+                  setCategories={setSharedCategories}
+                />
+              )}
               {activeTab === "orders" && <OrdersTab />}
               {activeTab === "users" && <UsersTab />}
             </div>
