@@ -1,348 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, X, ChevronDown, Search } from "lucide-react";
-
-// ── Mock Data ────────────────────────────────────────────────
-const mockProducts = [
-  {
-    _id: "1",
-    name: "Oversized Urban Tee",
-    price: 1200,
-    discountPrice: 950,
-    category: "tshirt",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["black", "white"],
-    images: [],
-    stock: 10,
-  },
-  {
-    _id: "2",
-    name: "Street Hoodie Black",
-    price: 2500,
-    discountPrice: 1999,
-    category: "hoodie",
-    sizes: ["M", "L", "XL"],
-    colors: ["black"],
-    images: [],
-    stock: 5,
-  },
-  {
-    _id: "3",
-    name: "Cargo Jogger Grey",
-    price: 1800,
-    discountPrice: 1499,
-    category: "jogger",
-    sizes: ["S", "M", "L"],
-    colors: ["grey", "black"],
-    images: [],
-    stock: 8,
-  },
-  {
-    _id: "4",
-    name: "UT Signature Cap",
-    price: 800,
-    discountPrice: 650,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "white", "olive"],
-    images: [],
-    stock: 20,
-  },
-  {
-    _id: "5",
-    name: "Graphic Print Tee",
-    price: 1100,
-    discountPrice: null,
-    category: "tshirt",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["white", "olive"],
-    images: [],
-    stock: 15,
-  },
-  {
-    _id: "6",
-    name: "Zip-Up Hoodie Olive",
-    price: 2800,
-    discountPrice: 2299,
-    category: "hoodie",
-    sizes: ["S", "M", "L"],
-    colors: ["olive"],
-    images: [],
-    stock: 3,
-  },
-  {
-    _id: "7",
-    name: "Slim Fit Jogger",
-    price: 1600,
-    discountPrice: null,
-    category: "jogger",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["black", "navy"],
-    images: [],
-    stock: 12,
-  },
-  {
-    _id: "8",
-    name: "Snapback Cap Black",
-    price: 750,
-    discountPrice: 600,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black"],
-    images: [],
-    stock: 25,
-  },
-  {
-    _id: "9",
-    name: "Neon Logo Tee",
-    price: 1300,
-    discountPrice: 999,
-    category: "tshirt",
-    sizes: ["M", "L", "XL"],
-    colors: ["black"],
-    images: [],
-    stock: 7,
-  },
-  {
-    _id: "10",
-    name: "Heavy Fleece Hoodie",
-    price: 3200,
-    discountPrice: 2599,
-    category: "hoodie",
-    sizes: ["L", "XL"],
-    colors: ["black", "grey"],
-    images: [],
-    stock: 4,
-  },
-  {
-    _id: "11",
-    name: "Tapered Cargo Pant",
-    price: 2100,
-    discountPrice: null,
-    category: "jogger",
-    sizes: ["S", "M", "L"],
-    colors: ["black", "khaki"],
-    images: [],
-    stock: 6,
-  },
-  {
-    _id: "12",
-    name: "Embroidered Cap",
-    price: 900,
-    discountPrice: 750,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "white", "red"],
-    images: [],
-    stock: 18,
-  },
-  {
-    _id: "13",
-    name: "Minimal Logo Tee",
-    price: 1000,
-    discountPrice: 850,
-    category: "tshirt",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["black", "white", "beige"],
-    images: [],
-    stock: 14,
-  },
-  {
-    _id: "14",
-    name: "Washed Vintage Tee",
-    price: 1400,
-    discountPrice: 1100,
-    category: "tshirt",
-    sizes: ["M", "L", "XL"],
-    colors: ["grey", "brown"],
-    images: [],
-    stock: 9,
-  },
-  {
-    _id: "15",
-    name: "Basic Everyday Tee",
-    price: 900,
-    discountPrice: null,
-    category: "tshirt",
-    sizes: ["S", "M", "L"],
-    colors: ["white", "black", "navy"],
-    images: [],
-    stock: 20,
-  },
-  {
-    _id: "16",
-    name: "Oversized Graphic Hoodie",
-    price: 3000,
-    discountPrice: 2499,
-    category: "hoodie",
-    sizes: ["M", "L", "XL"],
-    colors: ["black", "purple"],
-    images: [],
-    stock: 6,
-  },
-  {
-    _id: "17",
-    name: "Classic Pullover Hoodie",
-    price: 2600,
-    discountPrice: 2100,
-    category: "hoodie",
-    sizes: ["S", "M", "L"],
-    colors: ["grey", "navy"],
-    images: [],
-    stock: 10,
-  },
-  {
-    _id: "18",
-    name: "Lightweight Summer Hoodie",
-    price: 2200,
-    discountPrice: 1800,
-    category: "hoodie",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["white", "olive"],
-    images: [],
-    stock: 7,
-  },
-  {
-    _id: "19",
-    name: "Utility Cargo Jogger",
-    price: 1900,
-    discountPrice: 1550,
-    category: "jogger",
-    sizes: ["S", "M", "L"],
-    colors: ["olive", "black"],
-    images: [],
-    stock: 11,
-  },
-  {
-    _id: "20",
-    name: "Relaxed Fit Sweatpant",
-    price: 1700,
-    discountPrice: null,
-    category: "jogger",
-    sizes: ["M", "L", "XL"],
-    colors: ["grey", "black"],
-    images: [],
-    stock: 13,
-  },
-  {
-    _id: "21",
-    name: "Athletic Jogger Pro",
-    price: 2000,
-    discountPrice: 1650,
-    category: "jogger",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["black", "navy"],
-    images: [],
-    stock: 8,
-  },
-  {
-    _id: "22",
-    name: "Classic Snapback Cap",
-    price: 850,
-    discountPrice: 700,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "red"],
-    images: [],
-    stock: 22,
-  },
-  {
-    _id: "23",
-    name: "Trucker Mesh Cap",
-    price: 750,
-    discountPrice: null,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "white"],
-    images: [],
-    stock: 19,
-  },
-  {
-    _id: "24",
-    name: "Flat Brim Street Cap",
-    price: 950,
-    discountPrice: 800,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "green"],
-    images: [],
-    stock: 16,
-  },
-  {
-    _id: "25",
-    name: "Contrast Panel Tee",
-    price: 1250,
-    discountPrice: 999,
-    category: "tshirt",
-    sizes: ["S", "M", "L"],
-    colors: ["black", "white"],
-    images: [],
-    stock: 10,
-  },
-  {
-    _id: "26",
-    name: "Longline Street Tee",
-    price: 1350,
-    discountPrice: 1050,
-    category: "tshirt",
-    sizes: ["M", "L", "XL"],
-    colors: ["black", "beige"],
-    images: [],
-    stock: 9,
-  },
-  {
-    _id: "27",
-    name: "Premium Heavy Tee",
-    price: 1500,
-    discountPrice: 1200,
-    category: "tshirt",
-    sizes: ["L", "XL"],
-    colors: ["white", "grey"],
-    images: [],
-    stock: 5,
-  },
-  {
-    _id: "28",
-    name: "Techwear Hoodie",
-    price: 3500,
-    discountPrice: 2999,
-    category: "hoodie",
-    sizes: ["M", "L", "XL"],
-    colors: ["black"],
-    images: [],
-    stock: 4,
-  },
-  {
-    _id: "29",
-    name: "Slim Track Jogger",
-    price: 1750,
-    discountPrice: 1400,
-    category: "jogger",
-    sizes: ["S", "M", "L"],
-    colors: ["black", "grey"],
-    images: [],
-    stock: 12,
-  },
-  {
-    _id: "30",
-    name: "Urban Street Cap",
-    price: 880,
-    discountPrice: 720,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "navy"],
-    images: [],
-    stock: 17,
-  },
-];
-
-const categories = [
-  { label: "All", value: "" },
-  { label: "T-Shirts", value: "tshirt" },
-  { label: "Hoodies", value: "hoodie" },
-  { label: "Joggers", value: "jogger" },
-  { label: "Caps", value: "cap" },
-];
+import { productAPI } from "../api/product.api";
+import { categoryAPI } from "../api/category.api";
+import toast from "react-hot-toast";
 
 const sizes = ["S", "M", "L", "XL", "Free"];
 
@@ -352,8 +13,6 @@ const sortOptions = [
   { label: "Price: High to Low", value: "price_desc" },
   { label: "Name A-Z", value: "name_asc" },
 ];
-
-const ITEMS_PER_PAGE = 10;
 
 // ── Product Card ─────────────────────────────────────────────
 const ProductCard = ({ product, index }) => {
@@ -500,7 +159,7 @@ const ProductCard = ({ product, index }) => {
             marginBottom: "5px",
           }}
         >
-          {product.category}
+          {product.category?.name || product.category || ""}
         </p>
         <h3
           style={{
@@ -576,11 +235,73 @@ const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // ← এই তিনটা নতুন add করো
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [categories, setCategories] = useState([{ label: "All", value: "" }]);
+
+  const ITEMS_PER_PAGE = 10;
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // resize useEffect এর পরে add করো
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await categoryAPI.getAll();
+        const cats = res.data.data.map((c) => ({
+          label: c.name,
+          value: c.slug,
+        }));
+        setCategories([{ label: "All", value: "" }, ...cats]);
+      } catch (err) {
+        console.error("Categories fetch failed:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const params = {
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+        };
+        if (selectedCategory) params.category = selectedCategory;
+        if (selectedSizes.length > 0) params.size = selectedSizes.join(",");
+        if (priceMin > 0) params.minPrice = priceMin;
+        if (priceMax < 5000) params.maxPrice = priceMax;
+        if (search) params.search = search;
+        if (selectedSort !== "newest") params.sort = selectedSort;
+
+        const res = await productAPI.getAll(params);
+        setProducts(res.data.data.products);
+        setTotalPages(res.data.data.pagination.pages);
+      } catch (err) {
+        console.error(err);
+        toast.error("Products load হয়নি");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [
+    currentPage,
+    selectedCategory,
+    selectedSizes,
+    priceMin,
+    priceMax,
+    search,
+    selectedSort,
+  ]);
 
   const toggleSize = (size) => {
     setSelectedSizes((prev) =>
@@ -598,35 +319,7 @@ const ProductsPage = () => {
     setCurrentPage(1);
   };
 
-  const filtered = mockProducts
-    .filter((p) => !selectedCategory || p.category === selectedCategory)
-    .filter(
-      (p) =>
-        selectedSizes.length === 0 ||
-        p.sizes.some((s) => selectedSizes.includes(s)),
-    )
-    .filter((p) => {
-      const price = p.discountPrice || p.price;
-      return price >= priceMin && price <= priceMax;
-    })
-    .filter(
-      (p) => !search || p.name.toLowerCase().includes(search.toLowerCase()),
-    )
-    .sort((a, b) => {
-      if (selectedSort === "price_asc")
-        return (a.discountPrice || a.price) - (b.discountPrice || b.price);
-      if (selectedSort === "price_desc")
-        return (b.discountPrice || b.price) - (a.discountPrice || a.price);
-      if (selectedSort === "name_asc") return a.name.localeCompare(b.name);
-      return 0;
-    });
-
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const safePage = currentPage > totalPages ? 1 : currentPage;
-  const paginated = filtered.slice(
-    (safePage - 1) * ITEMS_PER_PAGE,
-    safePage * ITEMS_PER_PAGE,
-  );
   const activeFilters =
     (selectedCategory ? 1 : 0) +
     selectedSizes.length +
@@ -1024,7 +717,7 @@ const ProductsPage = () => {
               {/* Result count — desktop only */}
               {!isMobile && (
                 <span style={{ color: "#555", fontSize: "13px" }}>
-                  {filtered.length} products found
+                  {products.length} products found
                 </span>
               )}
             </div>
@@ -1032,7 +725,7 @@ const ProductsPage = () => {
             {/* Result count — mobile */}
             {isMobile && (
               <span style={{ color: "#555", fontSize: "12px" }}>
-                {filtered.length} products found
+                {products.length} products found
               </span>
             )}
           </div>
@@ -1061,7 +754,7 @@ const ProductsPage = () => {
                   background: "#111",
                   borderTop: "1px solid #333",
                   borderRadius: "16px 16px 0 0",
-                  padding: '0 24px 80px',
+                  padding: "0 24px 80px",
                   zIndex: 101,
                   height: "80vh",
                   overflowY: "scroll",
@@ -1389,7 +1082,28 @@ const ProductsPage = () => {
 
             {/* Product Grid */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              {paginated.length === 0 ? (
+              {loading ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: "20px",
+                  }}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        height: "380px",
+                        background: "#111",
+                        borderRadius: "8px",
+                        animation: "pulse 1.5s ease-in-out infinite",
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : products.length === 0 ? (
                 <div
                   style={{
                     textAlign: "center",
@@ -1437,7 +1151,7 @@ const ProductsPage = () => {
                     gap: "20px",
                   }}
                 >
-                  {paginated.map((product, i) => (
+                  {products.map((product, i) => (
                     <ProductCard
                       key={product._id}
                       product={product}
@@ -1446,7 +1160,6 @@ const ProductsPage = () => {
                   ))}
                 </div>
               )}
-
               {/* Pagination */}
               {totalPages > 1 && (
                 <div

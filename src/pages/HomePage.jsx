@@ -5,6 +5,8 @@ import heroBanner from "../assets/hero-banner.png";
 import heroBanner3 from "../assets/hero-banner3.png";
 import heroBanner4 from "../assets/hero-banner4.png";
 import heroBanner5 from "../assets/hero-banner5.png";
+import { productAPI } from "../api/product.api";
+import { categoryAPI } from '../api/category.api';
 
 // ── Animations ──────────────────────────────────────────────
 const fadeUpStyle = (delay = 0, visible = false) => ({
@@ -21,27 +23,27 @@ const banners = [
     title2: "STREETS",
     sub: "Dhaka র streets থেকে inspired। Bold streetwear for the new generation।",
   },
-    {
-      image: heroBanner3,
-      tag: "Night Sessions / Dhaka",
-      title1: "RULE THE",
-      title2: "NIGHT",
-      sub: "রাতের Dhaka তোমার। New season, new fits।",
-    },
-    {
-      image: heroBanner4,
-      tag: "Wolf Pack Collection / Dhaka",
-      title1: "WOLF",
-      title2: "PACK",
-      sub: "Pack এর সাথে চলো। Bold cuts, stronger identity।",
-    },
-    {
-      image: heroBanner5,
-      tag: "Park 3D / Dhaka Streets",
-      title1: "BUILT FOR",
-      title2: "THE CITY",
-      sub: "City র প্রতিটা corner এ তোমার style। Urban essentials, redefined।",
-    },
+  {
+    image: heroBanner3,
+    tag: "Night Sessions / Dhaka",
+    title1: "RULE THE",
+    title2: "NIGHT",
+    sub: "রাতের Dhaka তোমার। New season, new fits।",
+  },
+  {
+    image: heroBanner4,
+    tag: "Wolf Pack Collection / Dhaka",
+    title1: "WOLF",
+    title2: "PACK",
+    sub: "Pack এর সাথে চলো। Bold cuts, stronger identity।",
+  },
+  {
+    image: heroBanner5,
+    tag: "Park 3D / Dhaka Streets",
+    title1: "BUILT FOR",
+    title2: "THE CITY",
+    sub: "City র প্রতিটা corner এ তোমার style। Urban essentials, redefined।",
+  },
 ];
 
 const useInView = (threshold = 0.15) => {
@@ -445,6 +447,24 @@ const HeroSection = () => {
 // ── Categories Section ───────────────────────────────────────
 const CategoriesSection = () => {
   const [ref, visible] = useInView();
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await categoryAPI.getAll();
+        // শুধু parent categories দেখাবো
+        const parents = res.data.data.filter((c) => !c.parentCategory);
+        setCategories(parents.slice(0, 4));
+      } catch (err) {
+        console.error("Categories fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   return (
     <section
@@ -478,75 +498,112 @@ const CategoriesSection = () => {
           </h2>
         </div>
 
-        {/* Category Grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "16px",
-          }}
-        >
-          {categories.map((cat, i) => (
-            <Link
-              key={cat.slug}
-              to={`/products?category=${cat.slug}`}
-              style={{
-                ...fadeUpStyle(i * 0.1, visible),
-                display: "block",
-                padding: "36px 28px",
-                background: "#111",
-                border: "1px solid #222",
-                borderRadius: "8px",
-                textDecoration: "none",
-                transition: "all 0.3s ease",
-                position: "relative",
-                overflow: "hidden",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#AAFF00";
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow =
-                  "0 12px 32px rgba(170,255,0,0.1)";
-                e.currentTarget.style.background = "#141414";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#222";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-                e.currentTarget.style.background = "#111";
-              }}
-            >
-              <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>
-                {cat.emoji}
-              </div>
-              <h3
-                style={{
-                  fontFamily: "'Bebas Neue', cursive",
-                  fontSize: "1.8rem",
-                  color: "#F0F0F0",
-                  letterSpacing: "0.05em",
-                  marginBottom: "6px",
-                }}
-              >
-                {cat.label}
-              </h3>
-              <p style={{ fontSize: "12px", color: "#666" }}>{cat.desc}</p>
-
-              {/* Arrow */}
+        {/* Loading Skeleton */}
+        {loading ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {[1, 2, 3, 4].map((i) => (
               <div
+                key={i}
                 style={{
-                  position: "absolute",
-                  bottom: "24px",
-                  right: "24px",
-                  color: "#AAFF00",
-                  opacity: 0.5,
+                  height: "180px",
+                  background: "#111",
+                  borderRadius: "8px",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
+        ) : categories.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px", color: "#555" }}>
+            <p style={{ fontSize: "14px" }}>No categories yet.</p>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "16px",
+            }}
+          >
+            {categories.map((cat, i) => (
+              <Link
+                key={cat._id}
+                to={`/products?category=${cat.slug}`}
+                style={{
+                  ...fadeUpStyle(i * 0.1, visible),
+                  display: "block",
+                  padding: "36px 28px",
+                  background: "#111",
+                  border: "1px solid #222",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  transition: "all 0.3s ease",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#AAFF00";
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 12px 32px rgba(170,255,0,0.1)";
+                  e.currentTarget.style.background = "#141414";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#222";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.background = "#111";
                 }}
               >
-                <ArrowRight size={18} />
-              </div>
-            </Link>
-          ))}
-        </div>
+                {/* Emoji */}
+                <div style={{ fontSize: "2.5rem", marginBottom: "16px" }}>
+                  {cat.slug?.includes("shirt")
+                    ? "👕"
+                    : cat.slug?.includes("hoodie")
+                      ? "🧥"
+                      : cat.slug?.includes("jogger")
+                        ? "👖"
+                        : cat.slug?.includes("cap")
+                          ? "🧢"
+                          : "👗"}
+                </div>
+
+                <h3
+                  style={{
+                    fontFamily: "'Bebas Neue', cursive",
+                    fontSize: "1.8rem",
+                    color: "#F0F0F0",
+                    letterSpacing: "0.05em",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {cat.name}
+                </h3>
+                <p style={{ fontSize: "12px", color: "#666" }}>
+                  Browse collection
+                </p>
+
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: "24px",
+                    right: "24px",
+                    color: "#AAFF00",
+                    opacity: 0.5,
+                  }}
+                >
+                  <ArrowRight size={18} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -559,46 +616,17 @@ const FeaturedSection = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Backend ready হলে এখানে API call হবে
-    // আপাতত mock data
-    const mock = [
-      {
-        _id: "1",
-        name: "Oversized Urban Tee",
-        price: 1200,
-        discountPrice: 950,
-        images: [],
-        category: "tshirt",
-      },
-      {
-        _id: "2",
-        name: "Street Hoodie Black",
-        price: 2500,
-        discountPrice: 1999,
-        images: [],
-        category: "hoodie",
-      },
-      {
-        _id: "3",
-        name: "Cargo Jogger",
-        price: 1800,
-        discountPrice: 1499,
-        images: [],
-        category: "jogger",
-      },
-      {
-        _id: "4",
-        name: "UT Signature Cap",
-        price: 800,
-        discountPrice: 650,
-        images: [],
-        category: "cap",
-      },
-    ];
-    setTimeout(() => {
-      setProducts(mock);
-      setLoading(false);
-    }, 500);
+    const fetchFeatured = async () => {
+      try {
+        const res = await productAPI.getAll({ featured: "true", limit: 4 });
+        setProducts(res.data.data.products);
+      } catch (err) {
+        console.error("Featured fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
   }, []);
 
   return (
@@ -663,7 +691,7 @@ const FeaturedSection = () => {
           </Link>
         </div>
 
-        {/* Product Grid */}
+        {/* Loading Skeleton */}
         {loading ? (
           <div
             style={{
@@ -683,6 +711,10 @@ const FeaturedSection = () => {
                 }}
               />
             ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px", color: "#555" }}>
+            <p style={{ fontSize: "14px" }}>No featured products yet.</p>
           </div>
         ) : (
           <div

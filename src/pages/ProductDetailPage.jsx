@@ -1,102 +1,10 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { ShoppingCart, Zap, ArrowLeft, Star } from "lucide-react";
 import { useCart } from "../hooks/useCart";
+import { productAPI } from "../api/product.api";
+import { reviewAPI } from "../api/review.api";
 import toast from "react-hot-toast";
-
-// ── Mock Data ─────────────────────────────────────────────────
-const mockProducts = [
-  {
-    _id: "1",
-    name: "Oversized Urban Tee",
-    price: 1200,
-    discountPrice: 950,
-    category: "tshirt",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["black", "white", "olive"],
-    images: [],
-    stock: 10,
-    featured: true,
-    description:
-      "Premium quality oversized tee। Dhaka র streets এর জন্য perfect। 100% cotton, pre-shrunk fabric।",
-    shortDesc: "100% Cotton | Oversized Fit | Pre-shrunk",
-  },
-  {
-    _id: "2",
-    name: "Street Hoodie Black",
-    price: 2500,
-    discountPrice: 1999,
-    category: "hoodie",
-    sizes: ["M", "L", "XL"],
-    colors: ["black", "grey"],
-    images: [],
-    stock: 5,
-    featured: true,
-    description:
-      "Heavy fleece hoodie। Winter এর জন্য perfect। Kangaroo pocket, adjustable drawstring।",
-    shortDesc: "Heavy Fleece | Kangaroo Pocket | Unisex",
-  },
-  {
-    _id: "3",
-    name: "Cargo Jogger Grey",
-    price: 1800,
-    discountPrice: 1499,
-    category: "jogger",
-    sizes: ["S", "M", "L"],
-    colors: ["grey", "black"],
-    images: [],
-    stock: 8,
-    featured: false,
-    description:
-      "Multi-pocket cargo jogger। Comfortable fit with elastic waistband। Perfect for street style।",
-    shortDesc: "Multi-pocket | Elastic Waist | Tapered Fit",
-  },
-  {
-    _id: "4",
-    name: "UT Signature Cap",
-    price: 800,
-    discountPrice: 650,
-    category: "cap",
-    sizes: ["Free"],
-    colors: ["black", "white", "olive"],
-    images: [],
-    stock: 20,
-    featured: true,
-    description:
-      "UrbanThread BD signature cap। Adjustable snapback। One size fits all।",
-    shortDesc: "Snapback | One Size | Embroidered Logo",
-  },
-  {
-    _id: "5",
-    name: "Graphic Print Tee",
-    price: 1100,
-    discountPrice: null,
-    category: "tshirt",
-    sizes: ["S", "M", "L", "XL"],
-    colors: ["white", "olive"],
-    images: [],
-    stock: 15,
-    featured: false,
-    description:
-      "Bold graphic print tee। Street art inspired design। Regular fit।",
-    shortDesc: "100% Cotton | Regular Fit | Screen Print",
-  },
-  {
-    _id: "6",
-    name: "Zip-Up Hoodie Olive",
-    price: 2800,
-    discountPrice: 2299,
-    category: "hoodie",
-    sizes: ["S", "M", "L"],
-    colors: ["olive"],
-    images: [],
-    stock: 3,
-    featured: false,
-    description:
-      "Full zip hoodie in olive colorway। Ribbed cuffs and hem। Two side pockets।",
-    shortDesc: "Full Zip | Ribbed Cuffs | Side Pockets",
-  },
-];
 
 const colorMap = {
   black: "#1a1a1a",
@@ -111,19 +19,122 @@ const colorMap = {
 // ── Main Page ─────────────────────────────────────────────────
 const ProductDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const product = mockProducts.find((p) => p._id === id) || mockProducts[0];
-  const related = mockProducts
-    .filter((p) => p.category === product.category && p._id !== product._id)
-    .slice(0, 4);
+  const [product, setProduct] = useState(null);
+  const [related, setRelated] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
+  const [avgRating, setAvgRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      try {
+        // Product fetch
+        const res = await productAPI.getById(id);
+        const productData = res.data.data;
+        setProduct(productData);
+
+        // Reset selections
+        setSelectedSize("");
+        setSelectedColor("");
+        setQuantity(1);
+        setSelectedImage(0);
+
+        // Related products
+        if (productData.category) {
+          try {
+            const relatedRes = await productAPI.getAll({
+              category: productData.category?.slug || productData.category,
+              limit: 5,
+            });
+            setRelated(
+              relatedRes.data.data.products
+                .filter((p) => p._id !== id)
+                .slice(0, 4),
+            );
+          } catch {
+            setRelated([]);
+          }
+        }
+
+        // Reviews
+        // Reviews
+        try {
+          const reviewRes = await reviewAPI.getByProduct(id);
+          const reviewData = reviewRes.data.data || [];
+          setReviews(reviewData);
+
+          // Average calculate
+          if (reviewData.length > 0) {
+            const avg =
+              reviewData.reduce((sum, r) => sum + r.rating, 0) /
+              reviewData.length;
+            setAvgRating(Math.round(avg * 10) / 10);
+            setReviewCount(reviewData.length);
+          } else {
+            setAvgRating(0);
+            setReviewCount(0);
+          }
+        } catch {
+          setReviews([]);
+          setAvgRating(0);
+          setReviewCount(0);
+        }
+      } catch (err) {
+        console.error("Product fetch failed:", err);
+        toast.error("Product load হয়নি");
+        navigate("/products");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  if (loading)
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0A0A0A",
+          paddingTop: "88px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "3px solid #1A1A1A",
+              borderTop: "3px solid #AAFF00",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+              margin: "0 auto 16px",
+            }}
+          />
+          <p style={{ color: "#555", fontSize: "13px" }}>Loading product...</p>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+
+  if (!product) return null;
+
+  // discount calculate
   const discount = product.discountPrice
     ? Math.round((1 - product.discountPrice / product.price) * 100)
     : 0;
@@ -142,10 +153,11 @@ const ProductDetailPage = () => {
     window.location.href = "/checkout";
   };
 
-  // Mock images (placeholder boxes)
+  // images
   const images =
-    product.images.length > 0 ? product.images : [null, null, null, null];
+    product.images?.length > 0 ? product.images : [null, null, null, null];
 
+  // stock status
   const stockStatus =
     product.stock === 0
       ? { label: "OUT OF STOCK", color: "#FF4444" }
@@ -228,22 +240,36 @@ const ProductDetailPage = () => {
                       height: "100%",
                       objectFit: "cover",
                     }}
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "flex";
+                    }}
                   />
-                ) : (
-                  <div style={{ textAlign: "center", opacity: 0.2 }}>
-                    <div style={{ fontSize: "5rem" }}>
-                      {product.category === "tshirt"
-                        ? "👕"
-                        : product.category === "hoodie"
-                          ? "🧥"
-                          : product.category === "jogger"
-                            ? "👖"
-                            : "🧢"}
-                    </div>
+                ) : null}
+                {/* Fallback */}
+                <div
+                  style={{
+                    display: images[selectedImage] ? "none" : "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%",
+                    height: "100%",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
+                >
+                  <div style={{ fontSize: "5rem", opacity: 0.2 }}>
+                    {product.category?.slug?.includes("hoodie")
+                      ? "🧥"
+                      : product.category?.slug?.includes("jogger")
+                        ? "👖"
+                        : product.category?.slug?.includes("cap")
+                          ? "🧢"
+                          : "👕"}
                   </div>
-                )}
+                  <p style={{ color: "#333", fontSize: "12px" }}>No Image</p>
+                </div>
 
-                {/* Discount Badge */}
                 {discount > 0 && (
                   <div
                     style={{
@@ -282,6 +308,7 @@ const ProductDetailPage = () => {
                       alignItems: "center",
                       justifyContent: "center",
                       transition: "border-color 0.2s ease",
+                      maxWidth: "80px", // ← size limit
                     }}
                   >
                     {img ? (
@@ -293,16 +320,19 @@ const ProductDetailPage = () => {
                           height: "100%",
                           objectFit: "cover",
                         }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
                       />
                     ) : (
-                      <div style={{ fontSize: "1.2rem", opacity: 0.2 }}>
-                        {product.category === "tshirt"
-                          ? "👕"
-                          : product.category === "hoodie"
-                            ? "🧥"
-                            : product.category === "jogger"
-                              ? "👖"
-                              : "🧢"}
+                      <div style={{ fontSize: "1rem", opacity: 0.2 }}>
+                        {product.category?.slug?.includes("hoodie")
+                          ? "🧥"
+                          : product.category?.slug?.includes("jogger")
+                            ? "👖"
+                            : product.category?.slug?.includes("cap")
+                              ? "🧢"
+                              : "👕"}
                       </div>
                     )}
                   </button>
@@ -322,7 +352,7 @@ const ProductDetailPage = () => {
                   textTransform: "uppercase",
                 }}
               >
-                {product.category}
+                {product.category?.name || "Uncategorized"}
               </span>
 
               {/* Name */}
@@ -350,7 +380,7 @@ const ProductDetailPage = () => {
                 {product.shortDesc}
               </p>
 
-              {/* Rating mock */}
+              {/* Rating */}
               <div
                 style={{
                   display: "flex",
@@ -364,13 +394,15 @@ const ProductDetailPage = () => {
                     <Star
                       key={s}
                       size={14}
-                      fill={s <= 4 ? "#AAFF00" : "none"}
-                      color={s <= 4 ? "#AAFF00" : "#444"}
+                      fill={s <= Math.round(avgRating) ? "#AAFF00" : "none"}
+                      color={s <= Math.round(avgRating) ? "#AAFF00" : "#444"}
                     />
                   ))}
                 </div>
                 <span style={{ color: "#666", fontSize: "12px" }}>
-                  4.0 (24 reviews)
+                  {reviewCount > 0
+                    ? `${avgRating} (${reviewCount} reviews)`
+                    : "No reviews yet"}
                 </span>
               </div>
 
@@ -757,14 +789,12 @@ const ProductDetailPage = () => {
                 </button>
               ))}
             </div>
-
-            {/* Tab Content */}
-            {activeTab === "description" ? (
+            {activeTab === "description" && (
               <div style={{ maxWidth: "600px" }}>
                 <p
                   style={{ color: "#888", fontSize: "15px", lineHeight: "1.8" }}
                 >
-                  {product.description}
+                  {product.description || "No description available."}
                 </p>
                 <div
                   style={{
@@ -814,105 +844,105 @@ const ProductDetailPage = () => {
                   ))}
                 </div>
               </div>
-            ) : (
+            )}
+
+            {/* Tab Content */}
+            {activeTab === "reviews" && (
               <div>
-                {[
-                  {
-                    name: "Rahim",
-                    rating: 5,
-                    comment: "Excellent quality! Size perfect আছে।",
-                    date: "2 days ago",
-                  },
-                  {
-                    name: "Karim",
-                    rating: 4,
-                    comment: "Very good product। Delivery fast ছিল।",
-                    date: "1 week ago",
-                  },
-                  {
-                    name: "Nadia",
-                    rating: 4,
-                    comment: "Fabric quality ভালো। Recommend করবো।",
-                    date: "2 weeks ago",
-                  },
-                ].map((review, i) => (
+                {reviews.length === 0 ? (
                   <div
-                    key={i}
                     style={{
-                      padding: "20px",
-                      background: "#111",
-                      border: "1px solid #1A1A1A",
-                      borderRadius: "8px",
-                      marginBottom: "12px",
+                      textAlign: "center",
+                      padding: "40px",
+                      color: "#555",
                     }}
                   >
+                    <p style={{ fontSize: "14px" }}>এখনো কোনো review নেই।</p>
+                  </div>
+                ) : (
+                  reviews.map((review, i) => (
                     <div
+                      key={review._id}
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        marginBottom: "8px",
+                        padding: "20px",
+                        background: "#111",
+                        border: "1px solid #1A1A1A",
+                        borderRadius: "8px",
+                        marginBottom: "12px",
                       }}
                     >
                       <div
                         style={{
                           display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
+                          justifyContent: "space-between",
+                          marginBottom: "8px",
                         }}
                       >
                         <div
                           style={{
-                            width: "36px",
-                            height: "36px",
-                            borderRadius: "50%",
-                            background: "#AAFF00",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            color: "#0A0A0A",
-                            fontWeight: "800",
-                            fontSize: "14px",
+                            gap: "10px",
                           }}
                         >
-                          {review.name[0]}
-                        </div>
-                        <div>
-                          <p
+                          <div
                             style={{
-                              color: "#F0F0F0",
+                              width: "36px",
+                              height: "36px",
+                              borderRadius: "50%",
+                              background: "#AAFF00",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#0A0A0A",
+                              fontWeight: "800",
                               fontSize: "14px",
-                              fontWeight: "600",
                             }}
                           >
-                            {review.name}
-                          </p>
-                          <div style={{ display: "flex", gap: "2px" }}>
-                            {[1, 2, 3, 4, 5].map((s) => (
-                              <Star
-                                key={s}
-                                size={11}
-                                fill={s <= review.rating ? "#AAFF00" : "none"}
-                                color={s <= review.rating ? "#AAFF00" : "#444"}
-                              />
-                            ))}
+                            {review.userId?.name?.charAt(0) || "U"}
+                          </div>
+                          <div>
+                            <p
+                              style={{
+                                color: "#F0F0F0",
+                                fontSize: "14px",
+                                fontWeight: "600",
+                              }}
+                            >
+                              {review.userId?.name || "User"}
+                            </p>
+                            <div style={{ display: "flex", gap: "2px" }}>
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  size={11}
+                                  fill={s <= review.rating ? "#AAFF00" : "none"}
+                                  color={
+                                    s <= review.rating ? "#AAFF00" : "#444"
+                                  }
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
+                        <span style={{ color: "#555", fontSize: "12px" }}>
+                          {new Date(review.createdAt).toLocaleDateString(
+                            "en-BD",
+                          )}
+                        </span>
                       </div>
-                      <span style={{ color: "#555", fontSize: "12px" }}>
-                        {review.date}
-                      </span>
+                      <p
+                        style={{
+                          color: "#888",
+                          fontSize: "14px",
+                          lineHeight: "1.6",
+                        }}
+                      >
+                        {review.comment}
+                      </p>
                     </div>
-                    <p
-                      style={{
-                        color: "#888",
-                        fontSize: "14px",
-                        lineHeight: "1.6",
-                      }}
-                    >
-                      {review.comment}
-                    </p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </div>
