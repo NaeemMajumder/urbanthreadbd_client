@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from 'react-router-dom'
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
@@ -1195,11 +1196,16 @@ const ProductsTab = ({ categories = [] }) => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [form, setForm] = useState({
     name: "",
+    description: "",
     price: "",
     discountPrice: "",
-    category: "tshirt",
+    category: "",
     stock: "",
+    sizes: [],
+    colors: [],
     isActive: true,
+    featured: false,
+    images: [""],
   });
   const [errors, setErrors] = useState({});
 
@@ -1211,11 +1217,16 @@ const ProductsTab = ({ categories = [] }) => {
     setEditProduct(null);
     setForm({
       name: "",
+      description: "",
       price: "",
       discountPrice: "",
-      category: categories[0]?._id || "", // ← first category এর _id
+      category: categories[0]?._id || "",
       stock: "",
+      sizes: [],
+      colors: [],
       isActive: true,
+      featured: false,
+      images: [""],
     });
     setErrors({});
     setShowForm(true);
@@ -1224,11 +1235,16 @@ const ProductsTab = ({ categories = [] }) => {
     setEditProduct(p);
     setForm({
       name: p.name,
+      description: p.description || "",
       price: p.price,
       discountPrice: p.discountPrice || "",
-      category: p.category,
+      category: p.category?._id || p.category || "",
       stock: p.stock,
+      sizes: p.sizes || [],
+      colors: p.colors || [],
       isActive: p.isActive,
+      featured: p.featured || false,
+      images: p.images?.length > 0 ? p.images : [""],
     });
     setErrors({});
     setShowForm(true);
@@ -1261,38 +1277,41 @@ const ProductsTab = ({ categories = [] }) => {
     fetchProducts();
   }, []);
 
-  const handleSave = async () => {
-    if (!validate()) return;
-    try {
-      if (editProduct) {
-        await productAPI.update(editProduct._id, {
-          name: form.name,
-          price: Number(form.price),
-          discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
-          category: form.category || null,
-          stock: Number(form.stock),
-          isActive: form.isActive,
-        });
-        toast.success("Product updated!");
-      } else {
-        await productAPI.create({
-          name: form.name,
-          price: Number(form.price),
-          discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
-          category: form.category || null,
-          stock: Number(form.stock),
-          isActive: form.isActive,
-        });
-        toast.success("Product added!");
-      }
-      // Reload
-      const res = await productAPI.getAll({ limit: 100 });
-      setProducts(res.data.data.products);
-      setShowForm(false);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Save হয়নি");
+ const handleSave = async () => {
+  if (!validate()) return
+  
+  const payload = {
+    name: form.name,
+    description: form.description.trim(),
+    price: Number(form.price),
+    discountPrice: form.discountPrice ? Number(form.discountPrice) : null,
+    category: form.category || null,
+    stock: Number(form.stock),
+    isActive: form.isActive,
+    featured: form.featured,
+    sizes: form.sizes,
+    colors: form.colors,
+    images: form.images.filter(img => img.trim() !== ''),
+  }
+  
+  console.log('Payload:', payload)  // ← দেখো কী যাচ্ছে
+  
+  try {
+    if (editProduct) {
+      await productAPI.update(editProduct._id, payload)
+      toast.success('Product updated!')
+    } else {
+      await productAPI.create(payload)
+      toast.success('Product added!')
     }
-  };
+    const res = await productAPI.getAll({ limit: 100 })
+    setProducts(res.data.data.products)
+    setShowForm(false)
+  } catch (err) {
+    console.log('Error:', err.response?.data)
+    toast.error(err.response?.data?.message || 'Save হয়নি')
+  }
+}
   if (loading)
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1342,10 +1361,18 @@ const ProductsTab = ({ categories = [] }) => {
         <ConfirmModal
           title="DELETE PRODUCT"
           message="এই product টা permanently delete হয়ে যাবে।"
-          onConfirm={() => {
-            setProducts((p) => p.filter((x) => x._id !== deleteConfirm));
-            setDeleteConfirm(null);
-            toast.success("Deleted!");
+          onConfirm={async () => {
+            try {
+              await productAPI.delete(deleteConfirm);
+              setProducts((prev) =>
+                prev.filter((p) => p._id !== deleteConfirm),
+              );
+              setDeleteConfirm(null);
+              toast.success("Product deleted!");
+            } catch (err) {
+              toast.error(err.response?.data?.message || "Delete হয়নি");
+              setDeleteConfirm(null);
+            }
           }}
           onCancel={() => setDeleteConfirm(null)}
         />
@@ -1424,6 +1451,23 @@ const ProductsTab = ({ categories = [] }) => {
                 />
                 <EP msg={errors.name} />
               </div>
+              {/* Description */}
+              <div>
+                <label style={LS}>Description</label>
+                <textarea
+                  placeholder="Product description লিখো..."
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, description: e.target.value }))
+                  }
+                  rows={3}
+                  style={{
+                    ...IS(false),
+                    resize: "none",
+                    lineHeight: "1.6",
+                  }}
+                />
+              </div>
               <div
                 style={{
                   display: "grid",
@@ -1500,6 +1544,329 @@ const ProductsTab = ({ categories = [] }) => {
                     style={IS(errors.stock)}
                   />
                   <EP msg={errors.stock} />
+                </div>
+                {/* Images */}
+                <div>
+                  <label style={LS}>Product Images</label>
+                  {form.images.map((img, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder={`Image URL ${index + 1}`}
+                        value={img}
+                        onChange={(e) => {
+                          const newImages = [...form.images];
+                          newImages[index] = e.target.value;
+                          setForm((p) => ({ ...p, images: newImages }));
+                        }}
+                        style={{ ...IS(false), flex: 1 }}
+                      />
+                      {form.images.length > 1 && (
+                        <button
+                          onClick={() => {
+                            const newImages = form.images.filter(
+                              (_, i) => i !== index,
+                            );
+                            setForm((p) => ({ ...p, images: newImages }));
+                          }}
+                          style={{
+                            background: "rgba(255,68,68,0.1)",
+                            border: "1px solid rgba(255,68,68,0.2)",
+                            color: "#FF4444",
+                            borderRadius: "6px",
+                            padding: "0 12px",
+                            cursor: "pointer",
+                            fontSize: "18px",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {form.images.length < 5 && (
+                    <button
+                      onClick={() =>
+                        setForm((p) => ({ ...p, images: [...p.images, ""] }))
+                      }
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "8px 16px",
+                        background: "transparent",
+                        border: "1px dashed #333",
+                        color: "#666",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        width: "100%",
+                        justifyContent: "center",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#AAFF00";
+                        e.currentTarget.style.color = "#AAFF00";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#333";
+                        e.currentTarget.style.color = "#666";
+                      }}
+                    >
+                      <Plus size={14} /> Add Another Image
+                    </button>
+                  )}
+                </div>
+
+                {/* Sizes */}
+                <div>
+                  <label style={LS}>Sizes</label>
+                  <div
+                    style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+                  >
+                    {["S", "M", "L", "XL", "XXL"].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          const newSizes = form.sizes.includes(size)
+                            ? form.sizes.filter((s) => s !== size)
+                            : [...form.sizes, size];
+                          setForm((p) => ({ ...p, sizes: newSizes }));
+                        }}
+                        style={{
+                          padding: "6px 16px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          background: form.sizes.includes(size)
+                            ? "#AAFF00"
+                            : "#0F0F0F",
+                          color: form.sizes.includes(size) ? "#0A0A0A" : "#888",
+                          border: `1px solid ${form.sizes.includes(size) ? "#AAFF00" : "#333"}`,
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Colors */}
+                <div>
+                  <label style={LS}>Colors</label>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "8px",
+                      marginBottom: "8px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {["black", "white", "grey", "navy", "olive", "red"].map(
+                      (color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => {
+                            const newColors = form.colors.includes(color)
+                              ? form.colors.filter((c) => c !== color)
+                              : [...form.colors, color];
+                            setForm((p) => ({ ...p, colors: newColors }));
+                          }}
+                          style={{
+                            padding: "6px 14px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            background: form.colors.includes(color)
+                              ? "rgba(170,255,0,0.1)"
+                              : "#0F0F0F",
+                            color: form.colors.includes(color)
+                              ? "#AAFF00"
+                              : "#888",
+                            border: `1px solid ${form.colors.includes(color) ? "#AAFF00" : "#333"}`,
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            transition: "all 0.15s ease",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: "10px",
+                              height: "10px",
+                              borderRadius: "50%",
+                              background:
+                                color === "white"
+                                  ? "#F0F0F0"
+                                  : color === "grey"
+                                    ? "#888"
+                                    : color === "navy"
+                                      ? "#003087"
+                                      : color === "olive"
+                                        ? "#6B7C3A"
+                                        : color === "red"
+                                          ? "#FF4444"
+                                          : color,
+                              border:
+                                color === "white" ? "1px solid #333" : "none",
+                              flexShrink: 0,
+                            }}
+                          />
+                          {color}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  {/* Custom color input */}
+                  <input
+                    type="text"
+                    placeholder="Custom color add করো (e.g. purple)"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && e.target.value.trim()) {
+                        const color = e.target.value.trim().toLowerCase();
+                        if (!form.colors.includes(color)) {
+                          setForm((p) => ({
+                            ...p,
+                            colors: [...p.colors, color],
+                          }));
+                        }
+                        e.target.value = "";
+                      }
+                    }}
+                    style={{ ...IS(false), marginTop: "8px" }}
+                  />
+                  <p
+                    style={{
+                      color: "#555",
+                      fontSize: "11px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    Enter চাপলে custom color add হবে
+                  </p>
+                  {/* Selected colors */}
+                  {form.colors.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "6px",
+                        flexWrap: "wrap",
+                        marginTop: "8px",
+                      }}
+                    >
+                      {form.colors.map((color) => (
+                        <span
+                          key={color}
+                          style={{
+                            padding: "3px 10px",
+                            borderRadius: "20px",
+                            background: "rgba(170,255,0,0.1)",
+                            color: "#AAFF00",
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          {color}
+                          <button
+                            onClick={() =>
+                              setForm((p) => ({
+                                ...p,
+                                colors: p.colors.filter((c) => c !== color),
+                              }))
+                            }
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#888",
+                              cursor: "pointer",
+                              padding: 0,
+                              fontSize: "14px",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Featured Toggle */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    background: "#0F0F0F",
+                    borderRadius: "6px",
+                    border: "1px solid #222",
+                  }}
+                >
+                  <div>
+                    <span style={{ color: "#888", fontSize: "13px" }}>
+                      Featured Product
+                    </span>
+                    <p
+                      style={{
+                        color: "#555",
+                        fontSize: "11px",
+                        marginTop: "2px",
+                      }}
+                    >
+                      HomePage এ দেখাবে
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((p) => ({ ...p, featured: !p.featured }))
+                    }
+                    style={{
+                      width: "44px",
+                      height: "24px",
+                      borderRadius: "12px",
+                      background: form.featured ? "#AAFF00" : "#333",
+                      border: "none",
+                      cursor: "pointer",
+                      position: "relative",
+                      transition: "background 0.2s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "3px",
+                        left: form.featured ? "23px" : "3px",
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "50%",
+                        background: form.featured ? "#0A0A0A" : "#888",
+                        transition: "left 0.2s ease",
+                      }}
+                    />
+                  </button>
                 </div>
               </div>
               <div
@@ -1670,7 +2037,7 @@ const ProductsTab = ({ categories = [] }) => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 90px 60px 80px 55px 90px",
+              gridTemplateColumns: "1fr 90px 60px 120px 55px 90px",
               padding: "12px 20px",
               borderBottom: "1px solid #1A1A1A",
               gap: "12px",
@@ -1698,7 +2065,7 @@ const ProductsTab = ({ categories = [] }) => {
               key={product._id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 90px 60px 80px 55px 90px",
+                gridTemplateColumns: "1fr 90px 60px 120px 55px 90px",
                 padding: "14px 20px",
                 gap: "12px",
                 alignItems: "center",
@@ -1713,15 +2080,54 @@ const ProductsTab = ({ categories = [] }) => {
                 (e.currentTarget.style.background = "transparent")
               }
             >
-              <p
-                style={{
-                  color: "#F0F0F0",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                }}
-              >
-                {product.name}
-              </p>
+<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+  {/* Image */}
+  <Link to={`/products/${product._id}`} target="_blank"
+    style={{ flexShrink: 0, textDecoration: 'none' }}
+  >
+    <div style={{
+      width: '44px', height: '44px', borderRadius: '8px',
+      background: '#1A1A1A', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      border: '1px solid #222', transition: 'border-color 0.2s ease',
+      flexShrink: 0,
+    }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = '#AAFF00'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = '#222'}
+    >
+      {product.images?.[0] ? (
+        <img
+          src={product.images[0]}
+          alt={product.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={e => { e.target.style.display = 'none' }}
+        />
+      ) : (
+        <span style={{ fontSize: '1.2rem', opacity: 0.4 }}>
+          {product.category?.slug?.includes('hoodie') ? '🧥'
+            : product.category?.slug?.includes('jogger') ? '👖'
+            : product.category?.slug?.includes('cap') ? '🧢'
+            : '👕'}
+        </span>
+      )}
+    </div>
+  </Link>
+
+  {/* Name — clickable */}
+  <Link to={`/products/${product._id}`} target="_blank"
+    style={{ textDecoration: 'none' }}
+  >
+    <p style={{
+      color: '#F0F0F0', fontSize: '13px', fontWeight: '600',
+      transition: 'color 0.15s ease',
+    }}
+      onMouseEnter={e => e.currentTarget.style.color = '#AAFF00'}
+      onMouseLeave={e => e.currentTarget.style.color = '#F0F0F0'}
+    >
+      {product.name}
+    </p>
+  </Link>
+</div>
               <span
                 style={{
                   color: "#AAFF00",
@@ -2290,12 +2696,18 @@ const CategoriesTab = ({ categories, setCategories }) => {
         <ConfirmModal
           title="DELETE CATEGORY"
           message="এই category টা permanently delete হয়ে যাবে।"
-          onConfirm={() => {
-            setCategories((prev) =>
-              prev.filter((c) => c._id !== deleteConfirm),
-            );
-            setDeleteConfirm(null);
-            toast.success("Category deleted!");
+          onConfirm={async () => {
+            try {
+              await categoryAPI.delete(deleteConfirm);
+              setCategories((prev) =>
+                prev.filter((c) => c._id !== deleteConfirm),
+              );
+              setDeleteConfirm(null);
+              toast.success("Category deleted!");
+            } catch (err) {
+              toast.error(err.response?.data?.message || "Delete হয়নি");
+              setDeleteConfirm(null);
+            }
           }}
           onCancel={() => setDeleteConfirm(null)}
         />
@@ -3125,6 +3537,19 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("stats");
   const [sharedCategories, setSharedCategories] = useState([]);
+
+  // ← এটা add করো
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await categoryAPI.getAll();
+        setSharedCategories(res.data.data);
+      } catch (err) {
+        console.error("Categories fetch failed:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   if (!isAdmin) {
     return (

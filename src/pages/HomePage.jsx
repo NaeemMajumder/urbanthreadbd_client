@@ -431,14 +431,15 @@ const CategoriesSection = () => {
   const [ref, visible] = useInView();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const itemsPerSlide = 4;
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await categoryAPI.getAll();
-        // শুধু parent categories দেখাবো
         const parents = res.data.data.filter((c) => !c.parentCategory);
-        setCategories(parents.slice(0, 4));
+        setCategories(parents);
       } catch (err) {
         console.error("Categories fetch failed:", err);
       } finally {
@@ -448,39 +449,164 @@ const CategoriesSection = () => {
     fetchCategories();
   }, []);
 
+  const totalSlides = Math.ceil(categories.length / itemsPerSlide);
+  const visibleCategories = categories.slice(
+    currentSlide * itemsPerSlide,
+    currentSlide * itemsPerSlide + itemsPerSlide,
+  );
+
+  const prevSlide = () => setCurrentSlide((p) => Math.max(0, p - 1));
+  const nextSlide = () =>
+    setCurrentSlide((p) => Math.min(totalSlides - 1, p + 1));
+
   return (
     <section
       ref={ref}
       style={{ padding: "clamp(60px, 8vw, 100px) 0", background: "#0A0A0A" }}
     >
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 24px" }}>
-        {/* Section Header */}
-        <div style={{ marginBottom: "60px", ...fadeUpStyle(0, visible) }}>
-          <span
-            style={{
-              fontSize: "11px",
-              color: "#AAFF00",
-              fontWeight: "700",
-              letterSpacing: "0.3em",
-              textTransform: "uppercase",
-            }}
-          >
-            — Browse by Category
-          </span>
-          <h2
-            style={{
-              fontFamily: "'Bebas Neue', cursive",
-              fontSize: "clamp(2.5rem, 5vw, 4rem)",
-              color: "#F0F0F0",
-              marginTop: "8px",
-              lineHeight: 1,
-            }}
-          >
-            FIND YOUR STYLE
-          </h2>
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            marginBottom: "48px",
+            flexWrap: "wrap",
+            gap: "16px",
+            ...fadeUpStyle(0, visible),
+          }}
+        >
+          <div>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#AAFF00",
+                fontWeight: "700",
+                letterSpacing: "0.3em",
+                textTransform: "uppercase",
+              }}
+            >
+              — Browse by Category
+            </span>
+            <h2
+              style={{
+                fontFamily: "'Bebas Neue', cursive",
+                fontSize: "clamp(2.5rem, 5vw, 4rem)",
+                color: "#F0F0F0",
+                marginTop: "8px",
+                lineHeight: 1,
+              }}
+            >
+              FIND YOUR STYLE
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {/* Arrows */}
+            {totalSlides > 1 && (
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  onClick={prevSlide}
+                  disabled={currentSlide === 0}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: currentSlide === 0 ? "#111" : "#1A1A1A",
+                    border: `1px solid ${currentSlide === 0 ? "#1A1A1A" : "#333"}`,
+                    color: currentSlide === 0 ? "#333" : "#888",
+                    cursor: currentSlide === 0 ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.2s ease",
+                    fontSize: "18px",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentSlide !== 0) {
+                      e.currentTarget.style.borderColor = "#AAFF00";
+                      e.currentTarget.style.color = "#AAFF00";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor =
+                      currentSlide === 0 ? "#1A1A1A" : "#333";
+                    e.currentTarget.style.color =
+                      currentSlide === 0 ? "#333" : "#888";
+                  }}
+                >
+                  ←
+                </button>
+                <button
+                  onClick={nextSlide}
+                  disabled={currentSlide === totalSlides - 1}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background:
+                      currentSlide === totalSlides - 1 ? "#111" : "#1A1A1A",
+                    border: `1px solid ${currentSlide === totalSlides - 1 ? "#1A1A1A" : "#333"}`,
+                    color: currentSlide === totalSlides - 1 ? "#333" : "#888",
+                    cursor:
+                      currentSlide === totalSlides - 1
+                        ? "not-allowed"
+                        : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.2s ease",
+                    fontSize: "18px",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentSlide !== totalSlides - 1) {
+                      e.currentTarget.style.borderColor = "#AAFF00";
+                      e.currentTarget.style.color = "#AAFF00";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor =
+                      currentSlide === totalSlides - 1 ? "#1A1A1A" : "#333";
+                    e.currentTarget.style.color =
+                      currentSlide === totalSlides - 1 ? "#333" : "#888";
+                  }}
+                >
+                  →
+                </button>
+              </div>
+            )}
+
+            {/* View All */}
+            <Link
+              to="/categories"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "#AAFF00",
+                fontSize: "13px",
+                fontWeight: "600",
+                textDecoration: "none",
+                letterSpacing: "0.05em",
+                padding: "8px 16px",
+                border: "1px solid rgba(170,255,0,0.3)",
+                borderRadius: "6px",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(170,255,0,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              View All <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
 
-        {/* Loading Skeleton */}
+        {/* Loading */}
         {loading ? (
           <div
             style={{
@@ -503,107 +629,134 @@ const CategoriesSection = () => {
           </div>
         ) : categories.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px", color: "#555" }}>
-            <p style={{ fontSize: "14px" }}>No categories yet.</p>
+            <p>No categories yet.</p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "16px",
-            }}
-          >
-            {categories.map((cat, i) => (
-              <Link
-                key={cat._id}
-                to={`/products?category=${cat.slug}`}
-                style={{
-                  ...fadeUpStyle(i * 0.1, visible),
-                  display: "block",
-                  padding: "36px 28px",
-                  background: "#111",
-                  border: "1px solid #222",
-                  borderRadius: "8px",
-                  textDecoration: "none",
-                  transition: "all 0.3s ease",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#AAFF00";
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 12px 32px rgba(170,255,0,0.1)";
-                  e.currentTarget.style.background = "#141414";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#222";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.background = "#111";
-                }}
+          <>
+            {/* Slide indicator */}
+            {totalSlides > 1 && (
+              <div
+                style={{ display: "flex", gap: "6px", marginBottom: "20px" }}
               >
-                {/* Image or Emoji */}
-                <div style={{ marginBottom: "16px" }}>
-                  {cat.image && !cat.image.includes("example.com") ? (
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      style={{
-                        width: "60px",
-                        height: "60px",
-                        objectFit: "cover",
-                        borderRadius: "10px",
-                        border: "1px solid #1A1A1A",
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div style={{ fontSize: "2.5rem" }}>
-                      {cat.slug?.includes("shirt")
-                        ? "👕"
-                        : cat.slug?.includes("hoodie")
-                          ? "🧥"
-                          : cat.slug?.includes("jogger")
-                            ? "👖"
-                            : cat.slug?.includes("cap")
-                              ? "🧢"
-                              : "👗"}
-                    </div>
-                  )}
-                </div>
+                {Array.from({ length: totalSlides }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    style={{
+                      width: i === currentSlide ? "24px" : "8px",
+                      height: "4px",
+                      borderRadius: "2px",
+                      border: "none",
+                      background: i === currentSlide ? "#AAFF00" : "#333",
+                      cursor: "pointer",
+                      padding: 0,
+                      transition: "all 0.3s ease",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
 
-                <h3
+            {/* Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {visibleCategories.map((cat, i) => (
+                <Link
+                  key={cat._id}
+                  to={`/products?category=${cat.slug}`}
                   style={{
-                    fontFamily: "'Bebas Neue', cursive",
-                    fontSize: "1.8rem",
-                    color: "#F0F0F0",
-                    letterSpacing: "0.05em",
-                    marginBottom: "6px",
+                    ...fadeUpStyle(i * 0.1, visible),
+                    display: "block",
+                    padding: "36px 28px",
+                    background: "#111",
+                    border: "1px solid #222",
+                    borderRadius: "8px",
+                    textDecoration: "none",
+                    transition: "all 0.3s ease",
+                    position: "relative",
+                    overflow: "hidden",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#AAFF00";
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 12px 32px rgba(170,255,0,0.1)";
+                    e.currentTarget.style.background = "#141414";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#222";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                    e.currentTarget.style.background = "#111";
                   }}
                 >
-                  {cat.name}
-                </h3>
-                <p style={{ fontSize: "12px", color: "#666" }}>
-                  Browse collection
-                </p>
+                  {/* Image or Emoji */}
+                  <div style={{ marginBottom: "16px" }}>
+                    {cat.image && !cat.image.includes("example.com") ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        style={{
+                          width: "60px",
+                          height: "60px",
+                          objectFit: "cover",
+                          borderRadius: "10px",
+                          border: "1px solid #1A1A1A",
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: "2.5rem" }}>
+                        {cat.slug?.includes("shirt")
+                          ? "👕"
+                          : cat.slug?.includes("hoodie")
+                            ? "🧥"
+                            : cat.slug?.includes("jogger")
+                              ? "👖"
+                              : cat.slug?.includes("cap")
+                                ? "🧢"
+                                : "👗"}
+                      </div>
+                    )}
+                  </div>
 
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "24px",
-                    right: "24px",
-                    color: "#AAFF00",
-                    opacity: 0.5,
-                  }}
-                >
-                  <ArrowRight size={18} />
-                </div>
-              </Link>
-            ))}
-          </div>
+                  <h3
+                    style={{
+                      fontFamily: "'Bebas Neue', cursive",
+                      fontSize: "1.8rem",
+                      color: "#F0F0F0",
+                      letterSpacing: "0.05em",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {cat.name}
+                  </h3>
+                  <p style={{ fontSize: "12px", color: "#666" }}>
+                    Browse collection
+                  </p>
+
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "24px",
+                      right: "24px",
+                      color: "#AAFF00",
+                      opacity: 0.5,
+                    }}
+                  >
+                    <ArrowRight size={18} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>

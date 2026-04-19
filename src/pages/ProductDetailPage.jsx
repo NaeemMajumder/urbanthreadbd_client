@@ -1574,17 +1574,35 @@ const ProductDetailPage = () => {
                           alignItems: "center",
                           justifyContent: "center",
                           position: "relative",
+                          overflow: "hidden",
                         }}
                       >
-                        <div style={{ fontSize: "3rem", opacity: 0.2 }}>
-                          {p.category === "tshirt"
-                            ? "👕"
-                            : p.category === "hoodie"
-                              ? "🧥"
-                              : p.category === "jogger"
-                                ? "👖"
-                                : "🧢"}
-                        </div>
+                        {p.images?.[0] ? (
+                          <img
+                            src={p.images[0]}
+                            alt={p.name}
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: "3rem", opacity: 0.2 }}>
+                            {p.category?.slug?.includes("shirt")
+                              ? "👕"
+                              : p.category?.slug?.includes("hoodie")
+                                ? "🧥"
+                                : p.category?.slug?.includes("jogger")
+                                  ? "👖"
+                                  : p.category?.slug?.includes("cap")
+                                    ? "🧢"
+                                    : "👕"}
+                          </div>
+                        )}
                         {disc > 0 && (
                           <span
                             style={{
@@ -1613,7 +1631,7 @@ const ProductDetailPage = () => {
                             marginBottom: "4px",
                           }}
                         >
-                          {p.category}
+                          {p.category?.name || "—"}
                         </p>
                         <h3
                           style={{
