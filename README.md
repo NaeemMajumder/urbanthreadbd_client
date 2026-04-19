@@ -186,7 +186,7 @@ urbanthreadbd_frontend/
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/YOUR_USERNAME/urbanthreadbd_frontend.git
+git clone https://github.com/NaeemMajumder/urbanthreadbd_client.git
 cd urbanthreadbd_frontend
 ```
 
